@@ -1,0 +1,79 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solus Dynasty RPG - Essence Development</title>
+<link rel="stylesheet" href="css/essence.css">
+</head>
+<body>
+
+<div id="background"></div>
+
+<div id="title-container">
+    <h1>Essence Development</h1>
+</div>
+
+<button id="start-btn" onclick="startGame()">Start</button>
+
+<!-- Popup Box -->
+<div id="popup-box">
+    <div id="popup-content">
+        <p>The wheels of fate have begun turning. 
+As you come into the early stages of adulthood, 
+you are met with challenges, beyond the ordinary.
+
+Not only are you maturing,
+but your Essence is solidifying. 
+This instability causes fluctuation
+in which you aren't always in control of.
+
+You must make it past the challenges ahead,
+in order to stabilize your Essence.</p>
+        <button class="btn" onclick="fadeTextOut()">Ok</button>
+    </div>
+
+    <div id="selection-container">
+        <div id="selection-text">Your Essence contains an Aura.
+You Aura contains an Energy Field. 
+That Energy Field requires an exact signiture.
+Begin by selecting the color of YOUR Aura.</div>
+        <div id="circle-grid-container">
+            <div class="color-option" id="circle-0" onclick="selectCircle(0)">
+                <div class="circle-btn" style="background-color: #ff0000;">Agni</div>
+            </div>
+            <div class="color-option" id="circle-1" onclick="selectCircle(1)">
+                <div class="circle-btn" style="background-color: #0000ff;">Jala</div>
+            </div>
+            <div class="color-option" id="circle-2" onclick="selectCircle(2)">
+                <div class="circle-btn" style="background-color: #00ff00;">Prithvi</div>
+            </div>
+            <div class="color-option" id="circle-3" onclick="selectCircle(3)">
+                <div class="circle-btn" style="background-color: #ffff00; color: #000; text-shadow: none;">Vayu</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-container">
+        <div id="gliding-circle">
+            <div class="circle-btn" id="result-circle-node" style="width: 70px; height: 70px;"></div>
+        </div>
+        <div id="lore-text"></div>
+        <button class="btn" id="okay-btn" onclick="finishSelection()">Okay</button>
+    </div>
+
+    <div id="maze-container">
+        <div id="maze-wrapper" style="position: relative; width: 440px; height: 440px;">
+            <canvas id="mazeCanvas" width="440" height="440" style="background: transparent; position: absolute; top: 0; left: 0; display: block;"></canvas>
+            <div id="maze-center-dot" class="maze-center-dot"></div>
+        </div>
+    </div>
+</div>
+
+<audio id="bg-music" src="assets/That%20Which%20Anchors.mp3" loop></audio>
+
+<script src="js/essence.js"></script>
+
+</body>
+</html>
