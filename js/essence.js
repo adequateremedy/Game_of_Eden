@@ -125,7 +125,7 @@ function finishSelection() {
         centerDot.style.backgroundColor = selectedColorHex;
         centerDot.style.setProperty('--glow-color', selectedColorHex);
 
-        drawTrueConnectedCircularMaze(chosenMazeIndex);
+        createTrueCellularRadialMaze(chosenMazeIndex);
 
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
@@ -133,156 +133,159 @@ function finishSelection() {
     }, 1000);
 }
 
-// True Connected Labyrinth Generator (Option B structure with 12 rings + center chamber)
-function drawTrueConnectedCircularMaze(mazeId) {
+// True Cellular Radial Labyrinth Generator tailored for 440x440 canvas and 14 rings
+function createTrueCellularRadialMaze(mazeId) {
     const canvas = document.getElementById('mazeCanvas');
     const ctx = canvas.getContext('2d');
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
+    const cx = 220;
+    const cy = 220;
+    const RINGS = 14;
     const maxRadius = 195;
-    const rings = 12; // Option B high density rings for true labyrinth trial feel
-    const ringWidth = maxRadius / (rings + 1);
+    const ringHeight = maxRadius / RINGS;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = '#b87333';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    const rings = [];
 
-    // 1. Outer Boundary Circle of the Maze
-    ctx.beginPath();
-    ctx.arc(cx, cy, maxRadius, 0, Math.PI * 2);
-    ctx.stroke();
+    for (let r = 0; r < RINGS; r++) {
+        const cells = Math.max(6, Math.round((r + 1) * 6));
+        rings.push([]);
+        for (let i = 0; i < cells; i++) {
+            rings[r].push({
+                ring: r,
+                index: i,
+                visited: false,
+                cw: true,
+                ccw: true,
+                inner: true,
+                outer: true
+            });
+        }
+    }
 
-    // 2. Central Glowing Destination Chamber (Ring 13 / Center)
-    const centerRadius = ringWidth;
-    ctx.beginPath();
-    ctx.arc(cx, cy, centerRadius, 0, Math.PI * 2);
-    ctx.stroke();
+    function neighbors(cell) {
+        const list = [];
+        const r = cell.ring;
+        const i = cell.index;
+        const count = rings[r].length;
 
-    // Deterministic pseudo-random generator seeded by mazeId
+        const left = (i - 1 + count) % count;
+        const right = (i + 1) % count;
+
+        list.push({ cell: rings[r][left], type: "ccw" });
+        list.push({ cell: rings[r][right], type: "cw" });
+
+        if (r > 0) {
+            const innerCount = rings[r - 1].length;
+            const idx = Math.floor(i * innerCount / count);
+            list.push({ cell: rings[r - 1][idx], type: "inner" });
+        }
+
+        if (r < RINGS - 1) {
+            const outerCount = rings[r + 1].length;
+            const idx = Math.floor(i * outerCount / count);
+            list.push({ cell: rings[r + 1][idx], type: "outer" });
+        }
+
+        return list.filter(n => !n.cell.visited);
+    }
+
+    function removeWall(a, b, type) {
+        if (type === "cw") {
+            a.cw = false;
+            b.ccw = false;
+        }
+        if (type === "ccw") {
+            a.ccw = false;
+            b.cw = false;
+        }
+        if (type === "inner") {
+            a.inner = false;
+            b.outer = false;
+        }
+        if (type === "outer") {
+            a.outer = false;
+            b.inner = false;
+        }
+    }
+
+    // Seeded pseudo-random generator based on mazeId so each Essence has a unique consistent layout
     let seed = (mazeId + 1) * 1337;
     function random() {
         seed = (seed * 9301 + 49297) % 233280;
         return seed / 233280;
     }
 
-    // Grid tracking for cells [ring][sector] -> has wall to outer ring, has wall clockwise
-    const sectorsPerRing = [8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30];
-    
-    // Initialize walls: wallOut[r][s] = true/false, wallCW[r][s] = true/false
-    let wallOut = [];
-    let wallCW = [];
-
-    for (let r = 0; r < rings; r++) {
-        let secCount = sectorsPerRing[r];
-        wallOut.push(new Array(secCount).fill(true));
-        wallCW.push(new Array(secCount).fill(true));
-    }
-
-    // Simplified spanning-tree carving algorithm to guarantee 100% solvability and true connectivity
-    let visited = [];
-    for (let r = 0; r < rings; r++) {
-        visited.push(new Array(sectorsPerRing[r]).fill(false));
-    }
-
-    let stack = [];
-    // Start carving from innermost ring layer next to center chamber
-    let currR = rings - 1;
-    let currS = Math.floor(random() * sectorsPerRing[currR]);
-    visited[currR][currS] = true;
-    stack.push({r: currR, s: currS});
+    const start = rings[RINGS - 1][Math.floor(random() * rings[RINGS - 1].length)];
+    const stack = [];
+    start.visited = true;
+    stack.push(start);
 
     while (stack.length > 0) {
-        let current = stack[stack.length - 1];
-        let r = current.r;
-        let s = current.s;
-        let secCount = sectorsPerRing[r];
+        const current = stack[stack.length - 1];
+        const n = neighbors(current);
 
-        // Find unvisited neighbors (clockwise, counter-clockwise, inward, outward)
-        let neighbors = [];
-        
-        // CW neighbor
-        let nextS_cw = (s + 1) % secCount;
-        if (!visited[r][nextS_cw]) {
-            neighbors.push({r: r, s: nextS_cw, wallType: 'CW', targetS: s});
-        }
-        // CCW neighbor
-        let nextS_ccw = (s - 1 + secCount) % secCount;
-        if (!visited[r][nextS_ccw]) {
-            neighbors.push({r: r, s: nextS_ccw, wallType: 'CW', targetS: nextS_ccw});
-        }
-        // Inward neighbor (if not innermost ring)
-        if (r > 0) {
-            let innerSecCount = sectorsPerRing[r - 1];
-            let innerS = Math.floor(s * (innerSecCount / secCount));
-            if (!visited[r - 1][innerS]) {
-                neighbors.push({r: r - 1, s: innerS, wallType: 'Out', targetR: r - 1, targetS: innerS});
-            }
-        }
-        // Outward neighbor (if not outermost ring)
-        if (r < rings - 1) {
-            let outerSecCount = sectorsPerRing[r + 1];
-            let outerS = Math.floor(s * (outerSecCount / secCount));
-            if (!visited[r + 1][outerS]) {
-                neighbors.push({r: r + 1, s: outerS, wallType: 'Out', targetR: r, targetS: s});
-            }
-        }
-
-        if (neighbors.length > 0) {
-            // Pick random unvisited neighbor
-            let pick = neighbors[Math.floor(random() * neighbors.length)];
-            
-            // Knock down wall between current and chosen neighbor
-            if (pick.wallType === 'CW') {
-                wallCW[r][pick.targetS] = false;
-            } else if (pick.wallType === 'Out') {
-                wallOut[pick.targetR][pick.targetS] = false;
-            }
-
-            visited[pick.r][pick.s] = true;
-            stack.push({r: pick.r, s: pick.s});
+        if (n.length > 0) {
+            const next = n[Math.floor(random() * n.length)];
+            removeWall(current, next.cell, next.type);
+            next.cell.visited = true;
+            stack.push(next.cell);
         } else {
             stack.pop();
         }
     }
 
-    // Ensure connection from innermost ring to center chamber
-    wallOut[rings - 1][0] = false;
-    // Ensure connection from outermost ring to outside world (entrance/exit openings)
-    wallOut[0][0] = false;
-    wallOut[0][Math.floor(sectorsPerRing[0] / 2)] = false;
+    // Openings: Outer entrance & center core exit
+    start.outer = false;
+    rings[0][0].inner = false;
 
-    // Render the grid walls onto the canvas
-    for (let r = 0; r < rings; r++) {
-        let innerRadius = (r + 1) * ringWidth;
-        let outerRadius = (r + 2) * ringWidth;
-        let secCount = sectorsPerRing[r];
-        let angleStep = (Math.PI * 2) / secCount;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "#b87333";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
 
-        for (let s = 0; s < secCount; s++) {
-            let startAngle = s * angleStep;
-            let endAngle = (s + 1) * angleStep;
+    for (let r = 0; r < RINGS; r++) {
+        const inner = r * ringHeight + 12;
+        const outer = (r + 1) * ringHeight + 12;
+        const cells = rings[r].length;
+        const step = (Math.PI * 2) / cells;
 
-            // Draw outer arc wall if wallOut is true
-            if (wallOut[r][s]) {
+        for (let c = 0; c < cells; c++) {
+            const cell = rings[r][c];
+            const a1 = c * step;
+            const a2 = (c + 1) * step;
+
+            // Outer arc wall
+            if (cell.outer) {
                 ctx.beginPath();
-                ctx.arc(cx, cy, outerRadius, startAngle, endAngle);
+                ctx.arc(cx, cy, outer, a1, a2);
                 ctx.stroke();
             }
 
-            // Draw radial spoke wall if wallCW is true
-            if (wallCW[r][s]) {
-                let x1 = cx + innerRadius * Math.cos(endAngle);
-                let y1 = cy + innerRadius * Math.sin(endAngle);
-                let x2 = cx + outerRadius * Math.cos(endAngle);
-                let y2 = cy + outerRadius * Math.sin(endAngle);
-
+            // Inner arc wall (skip drawing innermost boundary ring so center chamber stays open)
+            if (cell.inner && r > 0) {
                 ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
+                ctx.arc(cx, cy, inner, a1, a2);
+                ctx.stroke();
+            }
+
+            // Clockwise radial spoke wall
+            if (cell.cw) {
+                ctx.beginPath();
+                ctx.moveTo(
+                    cx + inner * Math.cos(a2),
+                    cy + inner * Math.sin(a2)
+                );
+                ctx.lineTo(
+                    cx + outer * Math.cos(a2),
+                    cy + outer * Math.sin(a2)
+                );
                 ctx.stroke();
             }
         }
     }
+
+    // Draw central chamber ring boundary for the glowing destination core
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringHeight + 12, 0, Math.PI * 2);
+    ctx.stroke();
 }
