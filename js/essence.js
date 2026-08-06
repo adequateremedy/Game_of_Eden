@@ -125,7 +125,7 @@ function finishSelection() {
         centerDot.style.backgroundColor = selectedColorHex;
         centerDot.style.setProperty('--glow-color', selectedColorHex);
 
-        createTrueCellularRadialMaze(chosenMazeIndex);
+        generateAndDrawPacManCircularMaze();
 
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
@@ -133,159 +133,156 @@ function finishSelection() {
     }, 1000);
 }
 
-// True Cellular Radial Labyrinth Generator tailored for 440x440 canvas and 14 rings
-function createTrueCellularRadialMaze(mazeId) {
+// Cell definition for the Pac-Man style true radial maze generator
+class Cell {
+    constructor(ring, thetaIndex, totalThetas) {
+        this.ring = ring; 
+        this.thetaIndex = thetaIndex; 
+        this.totalThetas = totalThetas;
+        this.visited = false;
+        this.walls = {
+            inward: true,
+            outward: true,
+            cw: true,
+            ccw: true
+        };
+        this.neighbors = [];
+    }
+}
+
+function generateAndDrawPacManCircularMaze() {
     const canvas = document.getElementById('mazeCanvas');
     const ctx = canvas.getContext('2d');
-    const cx = 220;
-    const cy = 220;
-    const RINGS = 14;
-    const maxRadius = 195;
-    const ringHeight = maxRadius / RINGS;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
 
-    const rings = [];
+    const ringsCount = 10; 
+    const ringWidth = (canvas.width / 2 - 30) / ringsCount; 
+    let grid = [];
 
-    for (let r = 0; r < RINGS; r++) {
-        const cells = Math.max(6, Math.round((r + 1) * 6));
-        rings.push([]);
-        for (let i = 0; i < cells; i++) {
-            rings[r].push({
-                ring: r,
-                index: i,
-                visited: false,
-                cw: true,
-                ccw: true,
-                inner: true,
-                outer: true
-            });
-        }
-    }
-
-    function neighbors(cell) {
-        const list = [];
-        const r = cell.ring;
-        const i = cell.index;
-        const count = rings[r].length;
-
-        const left = (i - 1 + count) % count;
-        const right = (i + 1) % count;
-
-        list.push({ cell: rings[r][left], type: "ccw" });
-        list.push({ cell: rings[r][right], type: "cw" });
-
-        if (r > 0) {
-            const innerCount = rings[r - 1].length;
-            const idx = Math.floor(i * innerCount / count);
-            list.push({ cell: rings[r - 1][idx], type: "inner" });
-        }
-
-        if (r < RINGS - 1) {
-            const outerCount = rings[r + 1].length;
-            const idx = Math.floor(i * outerCount / count);
-            list.push({ cell: rings[r + 1][idx], type: "outer" });
-        }
-
-        return list.filter(n => !n.cell.visited);
-    }
-
-    function removeWall(a, b, type) {
-        if (type === "cw") {
-            a.cw = false;
-            b.ccw = false;
-        }
-        if (type === "ccw") {
-            a.ccw = false;
-            b.cw = false;
-        }
-        if (type === "inner") {
-            a.inner = false;
-            b.outer = false;
-        }
-        if (type === "outer") {
-            a.outer = false;
-            b.inner = false;
-        }
-    }
-
-    // Seeded pseudo-random generator based on mazeId so each Essence has a unique consistent layout
-    let seed = (mazeId + 1) * 1337;
-    function random() {
-        seed = (seed * 9301 + 49297) % 233280;
-        return seed / 233280;
-    }
-
-    const start = rings[RINGS - 1][Math.floor(random() * rings[RINGS - 1].length)];
-    const stack = [];
-    start.visited = true;
-    stack.push(start);
-
-    while (stack.length > 0) {
-        const current = stack[stack.length - 1];
-        const n = neighbors(current);
-
-        if (n.length > 0) {
-            const next = n[Math.floor(random() * n.length)];
-            removeWall(current, next.cell, next.type);
-            next.cell.visited = true;
-            stack.push(next.cell);
+    // Setup Grid Structure
+    for (let r = 0; r < ringsCount; r++) {
+        let cellsInRing;
+        if (r === 0) {
+            cellsInRing = 1; // Center Destination Hub
         } else {
-            stack.pop();
+            let estimatedCells = Math.round(r * 5);
+            let prevRingCount = grid[r - 1].length;
+            let ratio = Math.round(estimatedCells / prevRingCount);
+            cellsInRing = prevRingCount * (ratio || 1);
+        }
+        
+        let ringCells = [];
+        for (let t = 0; t < cellsInRing; t++) {
+            ringCells.push(new Cell(r, t, cellsInRing));
+        }
+        grid.push(ringCells);
+    }
+
+    // Map pathways across coordinates
+    for (let r = 0; r < ringsCount; r++) {
+        let ringCells = grid[r];
+        for (let t = 0; t < ringCells.length; t++) {
+            let cell = ringCells[t];
+            
+            if (ringCells.length > 1) {
+                cell.neighbors.push({ cell: ringCells[(t + 1) % ringCells.length], wall: 'cw', oppWall: 'ccw' });
+                cell.neighbors.push({ cell: ringCells[(t - 1 + ringCells.length) % ringCells.length], wall: 'ccw', oppWall: 'cw' });
+            }
+            if (r > 0) {
+                let innerRing = grid[r - 1];
+                let ratio = ringCells.length / innerRing.length;
+                let innerIndex = Math.floor(t / ratio);
+                cell.neighbors.push({ cell: innerRing[innerIndex], wall: 'inward', oppWall: 'outward' });
+            }
+            if (r < ringsCount - 1) {
+                let outerRing = grid[r + 1];
+                let ratio = outerRing.length / ringCells.length;
+                let outerStart = t * ratio;
+                for (let o = 0; o < ratio; o++) {
+                    cell.neighbors.push({ cell: outerRing[outerStart + o], wall: 'outward', oppWall: 'inward' });
+                }
+            }
         }
     }
 
-    // Openings: Outer entrance & center core exit
-    start.outer = false;
-    rings[0][0].inner = false;
+    // Maze Carving via DFS Stack (True Procedural Generation)
+    let stack = [];
+    let current = grid[0][0]; 
+    current.visited = true;
+    
+    while (true) {
+        let unvisited = current.neighbors.filter(n => !n.cell.visited);
+        
+        if (unvisited.length > 0) {
+            let nextEdge = unvisited[Math.floor(Math.random() * unvisited.length)];
+            let nextCell = nextEdge.cell;
+            
+            current.walls[nextEdge.wall] = false;
+            nextCell.walls[nextEdge.oppWall] = false;
+            
+            nextCell.visited = true;
+            stack.push(current);
+            current = nextCell;
+        } else if (stack.length > 0) {
+            current = stack.pop();
+        } else {
+            break;
+        }
+    }
 
+    // Open center access hub
+    grid[0][0].walls.cw = false;
+    grid[0][0].walls.ccw = false;
+    grid[0][0].walls.inward = false;
+
+    // Guaranteed outer gateway entry point
+    const outerRingIdx = ringsCount - 1;
+    grid[outerRingIdx][0].walls.outward = false;
+
+    // Render to Canvas with copper/gold arcade aesthetic matching game theme
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.strokeStyle = '#b87333'; 
     ctx.lineWidth = 2.5;
-    ctx.strokeStyle = "#b87333";
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    ctx.lineCap = 'round';
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = '#b87333';
 
-    for (let r = 0; r < RINGS; r++) {
-        const inner = r * ringHeight + 12;
-        const outer = (r + 1) * ringHeight + 12;
-        const cells = rings[r].length;
-        const step = (Math.PI * 2) / cells;
+    for (let r = 0; r < ringsCount; r++) {
+        let ringCells = grid[r];
+        let innerRadius = r * ringWidth;
+        let outerRadius = (r + 1) * ringWidth;
 
-        for (let c = 0; c < cells; c++) {
-            const cell = rings[r][c];
-            const a1 = c * step;
-            const a2 = (c + 1) * step;
+        for (let t = 0; t < ringCells.length; t++) {
+            let cell = ringCells[t];
+            let startAngle = (t / cell.totalThetas) * 2 * Math.PI;
+            let endAngle = ((t + 1) / cell.totalThetas) * 2 * Math.PI;
 
-            // Outer arc wall
-            if (cell.outer) {
+            // Draw radial walls
+            if (cell.walls.cw && r > 0) {
                 ctx.beginPath();
-                ctx.arc(cx, cy, outer, a1, a2);
+                ctx.moveTo(cx + innerRadius * Math.cos(endAngle), cy + innerRadius * Math.sin(endAngle));
+                ctx.lineTo(cx + outerRadius * Math.cos(endAngle), cy + outerRadius * Math.sin(endAngle));
                 ctx.stroke();
             }
 
-            // Inner arc wall (skip drawing innermost boundary ring so center chamber stays open)
-            if (cell.inner && r > 0) {
+            // Draw inner boundaries
+            if (cell.walls.inward && r > 0) {
                 ctx.beginPath();
-                ctx.arc(cx, cy, inner, a1, a2);
+                ctx.arc(cx, cy, innerRadius, startAngle, endAngle);
                 ctx.stroke();
             }
-
-            // Clockwise radial spoke wall
-            if (cell.cw) {
+            
+            // Draw outer gate structure constraints if it's the final ring
+            if (cell.walls.outward && r === ringsCount - 1) {
                 ctx.beginPath();
-                ctx.moveTo(
-                    cx + inner * Math.cos(a2),
-                    cy + inner * Math.sin(a2)
-                );
-                ctx.lineTo(
-                    cx + outer * Math.cos(a2),
-                    cy + outer * Math.sin(a2)
-                );
+                ctx.arc(cx, cy, outerRadius, startAngle, endAngle);
                 ctx.stroke();
             }
         }
     }
 
-    // Draw central chamber ring boundary for the glowing destination core
-    ctx.beginPath();
-    ctx.arc(cx, cy, ringHeight + 12, 0, Math.PI * 2);
-    ctx.stroke();
+    // Reset shadow properties for clean center dot overlay coordination
+    ctx.shadowBlur = 0;
 }
