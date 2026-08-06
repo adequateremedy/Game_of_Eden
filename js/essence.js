@@ -121,7 +121,6 @@ function finishSelection() {
         const mazeContainer = document.getElementById('maze-container');
         mazeContainer.style.display = 'flex';
         
-        // Remove old HTML dot element completely
         const oldDot = document.getElementById('maze-center-dot');
         if (oldDot) oldDot.remove();
 
@@ -133,7 +132,6 @@ function finishSelection() {
     }, 1000);
 }
 
-// Cell definition for the Pac-Man style true radial maze generator
 class Cell {
     constructor(ring, thetaIndex, totalThetas) {
         this.ring = ring; 
@@ -160,11 +158,10 @@ function generateAndDrawPacManCircularMaze() {
     const ringWidth = (canvas.width / 2 - 30) / ringsCount; 
     let grid = [];
 
-    // Setup Grid Structure
     for (let r = 0; r < ringsCount; r++) {
         let cellsInRing;
         if (r === 0) {
-            cellsInRing = 1; // Center Destination Hub
+            cellsInRing = 1; 
         } else {
             let estimatedCells = Math.round(r * 5);
             let prevRingCount = grid[r - 1].length;
@@ -179,7 +176,6 @@ function generateAndDrawPacManCircularMaze() {
         grid.push(ringCells);
     }
 
-    // Map pathways across coordinates
     for (let r = 0; r < ringsCount; r++) {
         let ringCells = grid[r];
         for (let t = 0; t < ringCells.length; t++) {
@@ -206,7 +202,6 @@ function generateAndDrawPacManCircularMaze() {
         }
     }
 
-    // Maze Carving via DFS Stack (True Procedural Generation)
     let stack = [];
     let current = grid[0][0]; 
     current.visited = true;
@@ -231,19 +226,27 @@ function generateAndDrawPacManCircularMaze() {
         }
     }
 
-    // Open center access hub
     grid[0][0].walls.cw = false;
     grid[0][0].walls.ccw = false;
     grid0_0_inward_fix(grid);
 
-    // Guaranteed outer gateway entry point
     const outerRingIdx = ringsCount - 1;
     grid[outerRingIdx][0].walls.outward = false;
 
-    // Render to Canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // DRAW MAZE WALLS ONLY (No colored dot or glowing orb in the middle)
+    // 1. SUBTLE GLOW AROUND THE CENTER HUB ONLY (Hollow center core with player's color glow ring)
+    ctx.save();
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = selectedColorHex;
+    ctx.strokeStyle = selectedColorHex;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringWidth, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.restore();
+
+    // 2. DRAW MAZE WALLS
     ctx.strokeStyle = '#b87333'; 
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
@@ -260,7 +263,6 @@ function generateAndDrawPacManCircularMaze() {
             let startAngle = (t / cell.totalThetas) * 2 * Math.PI;
             let endAngle = ((t + 1) / cell.totalThetas) * 2 * Math.PI;
 
-            // Draw radial walls
             if (cell.walls.cw && r > 0) {
                 ctx.beginPath();
                 ctx.moveTo(cx + innerRadius * Math.cos(endAngle), cy + innerRadius * Math.sin(endAngle));
@@ -268,14 +270,12 @@ function generateAndDrawPacManCircularMaze() {
                 ctx.stroke();
             }
 
-            // Draw inner boundaries
             if (cell.walls.inward && r > 1) {
                 ctx.beginPath();
                 ctx.arc(cx, cy, innerRadius, startAngle, endAngle);
                 ctx.stroke();
             }
             
-            // Draw outer gate structure constraints if it's the final ring
             if (cell.walls.outward && r === ringsCount - 1) {
                 ctx.beginPath();
                 ctx.arc(cx, cy, outerRadius, startAngle, endAngle);
