@@ -121,9 +121,9 @@ function finishSelection() {
         const mazeContainer = document.getElementById('maze-container');
         mazeContainer.style.display = 'flex';
         
-        const centerDot = document.getElementById('maze-center-dot');
-        centerDot.style.backgroundColor = selectedColorHex;
-        centerDot.style.setProperty('--glow-color', selectedColorHex);
+        // Remove old HTML dot element since the center itself is now painted directly on canvas with the player's glow color
+        const oldDot = document.getElementById('maze-center-dot');
+        if (oldDot) oldDot.remove();
 
         generateAndDrawPacManCircularMaze();
 
@@ -234,15 +234,33 @@ function generateAndDrawPacManCircularMaze() {
     // Open center access hub
     grid[0][0].walls.cw = false;
     grid[0][0].walls.ccw = false;
-    grid[0][0].walls.inward = false;
+    grid0_0_inward_fix(grid);
 
     // Guaranteed outer gateway entry point
     const outerRingIdx = ringsCount - 1;
     grid[outerRingIdx][0].walls.outward = false;
 
-    // Render to Canvas with copper/gold arcade aesthetic matching game theme
+    // Render to Canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
+    // 1. DRAW THE GLOWING CENTER ITSELF (Painted directly in the exact center using the player's selected Essence color)
+    ctx.save();
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = selectedColorHex;
+    ctx.fillStyle = selectedColorHex;
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringWidth - 2, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.restore();
+
+    // Inner core rim accent
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringWidth - 2, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    // 2. DRAW MAZE WALLS
     ctx.strokeStyle = '#b87333'; 
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
@@ -267,8 +285,8 @@ function generateAndDrawPacManCircularMaze() {
                 ctx.stroke();
             }
 
-            // Draw inner boundaries
-            if (cell.walls.inward && r > 0) {
+            // Draw inner boundaries (skip ring 1 inner boundary so the center hub is completely open and filled with the glowing color)
+            if (cell.walls.inward && r > 1) {
                 ctx.beginPath();
                 ctx.arc(cx, cy, innerRadius, startAngle, endAngle);
                 ctx.stroke();
@@ -282,7 +300,13 @@ function generateAndDrawPacManCircularMaze() {
             }
         }
     }
+}
 
-    // Reset shadow properties for clean center dot overlay coordination
-    ctx.shadowBlur = 0;
+function grid0_0_inward_fix(grid) {
+    grid[0][0].walls.inward = false;
+    if (grid[1]) {
+        for (let cell of grid[1]) {
+            cell.walls.inward = false;
+        }
+    }
 }
