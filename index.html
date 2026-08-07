@@ -9,18 +9,20 @@
 </head>
 <body>
 
-<div id="background"></div>
+<!-- LEVEL 1 CONTAINER -->
+<div id="level1-container">
+    <div id="background"></div>
 
-<div id="title-container">
-    <h1>Essence Development</h1>
-</div>
+    <div id="title-container">
+        <h1>Essence Development</h1>
+    </div>
 
-<button id="start-btn" onclick="startGame()">Start</button>
+    <button id="start-btn" onclick="startGame()">Start</button>
 
-<!-- Popup Box -->
-<div id="popup-box">
-    <div id="popup-content">
-        <p>The wheels of fate have begun turning. 
+    <!-- Popup Box -->
+    <div id="popup-box">
+        <div id="popup-content">
+            <p>The wheels of fate have begun turning. 
 As you come into the early stages of adulthood, 
 you are met with challenges, beyond the ordinary.
 
@@ -31,59 +33,108 @@ in which you aren't always in control of.
 
 You must make it past the challenges ahead,
 in order to stabilize your Essence.</p>
-        <button class="btn" onclick="fadeTextOut()">Ok</button>
-    </div>
+            <button class="btn" onclick="fadeTextOut()">Ok</button>
+        </div>
 
-    <div id="selection-container">
-        <div id="selection-text">Your Essence contains an Aura.
+        <div id="selection-container">
+            <div id="selection-text">Your Essence contains an Aura.
 You Aura contains an Energy Field. 
 That Energy Field requires an exact signiture.
 Begin by selecting the color of YOUR Aura.</div>
-        <div id="circle-grid-container">
-            <div class="color-option" id="circle-0" onclick="selectCircle(0)">
-                <div class="circle-btn" style="background-color: #ff0000;">Agni</div>
+            <div id="circle-grid-container">
+                <div class="color-option" id="circle-0" onclick="selectCircle(0)">
+                    <div class="circle-btn" style="background-color: #ff0000;">Agni</div>
+                </div>
+                <div class="color-option" id="circle-1" onclick="selectCircle(1)">
+                    <div class="circle-btn" style="background-color: #0000ff;">Jala</div>
+                </div>
+                <div class="color-option" id="circle-2" onclick="selectCircle(2)">
+                    <div class="circle-btn" style="background-color: #00ff00;">Prithvi</div>
+                </div>
+                <div class="color-option" id="circle-3" onclick="selectCircle(3)">
+                    <div class="circle-btn" style="background-color: #ffff00; color: #000; text-shadow: none;">Vayu</div>
+                </div>
             </div>
-            <div class="color-option" id="circle-1" onclick="selectCircle(1)">
-                <div class="circle-btn" style="background-color: #0000ff;">Jala</div>
+        </div>
+
+        <div id="result-container">
+            <div id="gliding-circle">
+                <div class="circle-btn" id="result-circle-node" style="width: 70px; height: 70px;"></div>
             </div>
-            <div class="color-option" id="circle-2" onclick="selectCircle(2)">
-                <div class="circle-btn" style="background-color: #00ff00;">Prithvi</div>
+            <div id="lore-text"></div>
+            <button class="btn" id="okay-btn" onclick="finishSelection()">Okay</button>
+        </div>
+
+        <div id="maze-container">
+            <div id="maze-wrapper" style="position: relative; width: 440px; height: 440px;">
+                <canvas id="mazeCanvas" width="440" height="440" style="background: transparent; position: absolute; top: 0; left: 0; display: block;"></canvas>
+                <div id="player-circle"></div>
+                <div id="orbs-layer"></div>
             </div>
-            <div class="color-option" id="circle-3" onclick="selectCircle(3)">
-                <div class="circle-btn" style="background-color: #ffff00; color: #000; text-shadow: none;">Vayu</div>
+            <!-- UI Header: Timer and Orb Counter -->
+            <div id="maze-ui" style="display: none;">
+                <span id="timer-display">5:00</span> | Orbs: <span id="orb-counter">0</span>
             </div>
         </div>
     </div>
 
-    <div id="result-container">
-        <div id="gliding-circle">
-            <div class="circle-btn" id="result-circle-node" style="width: 70px; height: 70px;"></div>
+    <!-- Second Separate Instruction Popup Box -->
+    <div id="maze-instruction-box">
+        <div id="maze-instruction-content">
+            <p>The Vibration you carry, resonates deeply. 
+But, you must not let it's light burn out. 
+Collect as many glowing white orbs, as you can.
+Then, reach the center of your maze, before time runs out.</p>
+            <button class="btn" onclick="closeMazeInstructions()">Alright</button>
         </div>
-        <div id="lore-text"></div>
-        <button class="btn" id="okay-btn" onclick="finishSelection()">Okay</button>
     </div>
 
-    <div id="maze-container">
-        <div id="maze-wrapper" style="position: relative; width: 440px; height: 440px;">
-            <canvas id="mazeCanvas" width="440" height="440" style="background: transparent; position: absolute; top: 0; left: 0; display: block;"></canvas>
-            <div id="player-circle"></div>
-            <div id="orbs-layer"></div>
-        </div>
-        <!-- UI Header: Timer and Orb Counter -->
-        <div id="maze-ui" style="display: none;">
-            <span id="timer-display">5:00</span> | Orbs: <span id="orb-counter">0</span>
+    <!-- Third Transition Popup Box -->
+    <div id="transition-popup-box">
+        <div id="transition-popup-content">
+            <p>You have established a stable connection, within your Energy. But this is not all that is needed to create the player's Energy Signature. Now, you must find the Hertz for your Energy, in level 2.</p>
+            <button class="btn" onclick="transitionToLevel2()">Proceed</button>
         </div>
     </div>
 </div>
 
-<!-- Second Separate Instruction Popup Box -->
-<div id="maze-instruction-box">
-    <div id="maze-instruction-content">
-        <p>The Vibration you carry, resonates deeply. 
-But, you must not let it's light burn out. 
-Collect as many glowing white orbs, as you can.
-Then, reach the center of your maze, before time runs out.</p>
-        <button class="btn" onclick="closeMazeInstructions()">Alright</button>
+<!-- LEVEL 2 CONTAINER -->
+<div id="level2-container">
+    <h1>Level 2: Resonance Matrix</h1>
+    
+    <!-- External Top HUD Display -->
+    <div id="hudContainer">
+        <div class="hud-item">Time Remaining: <span id="timerValue" class="hud-value">60.0</span>s</div>
+        <div class="hud-item">Pacing State: <span id="pacingValue" class="hud-value">Calculating...</span></div>
+        <div class="hud-item">Modifiers: <span id="modValue" class="hud-value">0.0 Hz</span></div>
+    </div>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        
+        <!-- Onboarding Screen -->
+        <div id="introScreen" class="screen-overlay">
+            <h2 style="color: #00ffcc; margin-top:0;">FREQUENCY TUNING PROMPT</h2>
+            <p>
+                For the next 60 seconds, sculpt your energy signature. Your physical velocity establishes your baseline frequency. 
+                Collect Pink Node Accelerators to increase vibration (+5.0 Hz) or Brown Node Dampeners to deep-tune the wavelength (-5.0 Hz). 
+                The final frequency composition is entirely up to you.
+            </p>
+            <button onclick="startLevel2()">Initialize Matrix</button>
+        </div>
+
+        <!-- Calibration Finish Screen -->
+        <div id="resultsScreen" class="screen-overlay" style="display: none;">
+            <h2 style="color: #00ffcc; margin-top:0;">FREQUENCY CALIBRATION COMPLETE</h2>
+            <p>Your permanent energy signature frequency has been synthesized:</p>
+            <div class="hz-result" id="hzDisplay">0.00 Hz</div>
+            
+            <div class="math-breakdown" id="mathDisplay">
+                <!-- Filled dynamically by script -->
+            </div>
+            
+            <button onclick="resetToIntro()">Recalibrate Level 2</button>
+        </div>
     </div>
 </div>
 
