@@ -3,7 +3,7 @@ const loreData = [
     `Agni embodies an intense, consuming passion that ignites creativity and drives ambition forward with unstoppable momentum. This fierce energy easily spills over into a volatile, explosive anger when restricted, burning through boundaries with sharp impatience. Yet, beneath the aggression lies a warm, radiant joy that offers comfort, protection, and deep inspiration to those nearby. It also carries a sharp, critical judgment, fiercely cutting away falsehoods to seek absolute purity and truth. Finally, it harbors a restless anxiety, a constant, flickering fear of depletion that forces it to always seek new fuel to sustain its brilliant light.`,
     `Jala flows with profound, boundless empathy, effortlessly absorbing the unspoken emotions and hidden pains of the world. It carries a heavy, melancholic sadness, gently cradling grief like a deep, still ocean hidden away from the sun. This sorrow is balanced by a serene, tranquil peace, providing a soothing calm that heals friction and restores harmony. When disrupted, it reveals a fluid, shapeshifting insecurity, constantly adapting its form out of a deep fear of rejection or abandonment. Underneath its quiet surface, it holds a fiercely loyal, enduring love that binds relationships together with unbreakable emotional ties.`,
     `Prithvi stands as a pillar of unwavering, stubborn confidence, rooted deeply in its own unshakeable worth and massive strength. It radiates a profound, nurturing safety, offering a dependable sanctuary where others feel completely protected and grounded. This stability can harden into a rigid, heavy dullness, resisting change out of a cautious fear of the unknown. However, it experiences a quiet, deeply satisfying contentment, finding immense joy in simple, physical presence and the natural rhythm of time. It also harbors a silent, protective possessiveness, fiercely guarding its domain and the people it holds dear.`,
-    `Vayu thrives on an ecstatic, untamed excitement, constantly seeking the thrill of new ideas, distant horizons, and absolute freedom. It suffers from a detached, scattered loneliness, drifting far above the world without ever feeling truly connected to a single place. Its fast, agile nature brings a lighter, whimsical curiosity that playfully explores concepts and binds people together through communication. Yet, this quickness can instantly collapse into a chaotic, overwhelming panic when it feels trapped or compressed. Ultimately, it is driven by a hopeful, soaring optimism, always looking forward to the next breeze of change.`
+    `Vayu thrives on an ecstatic, untamed excitement, constantly seeking the thrill of new ideas, distant horizons, and absolute freedom. It suffers from a detached, scattered loneliness, drifting far above the world without ever feeling truly connected to a single place. its fast, agile nature brings a lighter, whimsical curiosity that playfully explores concepts and binds people together through communication. Yet, this quickness can instantly collapse into a chaotic, overwhelming panic when it feels trapped or compressed. Ultimately, it is driven by a hopeful, soaring optimism, always looking forward to the next breeze of change.`
 ];
 
 const circleConfigs = [
@@ -19,8 +19,11 @@ let currentMazeGrid = null;
 let chosenEntranceIndex = null;
 let playerX = 0;
 let playerY = 0;
+let playerRadius = 8;
 let playerActive = false;
 let keys = {};
+let ringWidth = 0;
+const ringsCount = 10;
 
 function startGame() {
     const titleContainer = document.getElementById('title-container');
@@ -202,7 +205,6 @@ class Cell {
 }
 
 function buildMazeGrid() {
-    const ringsCount = 10; 
     let grid = [];
 
     let seed = (chosenMazeIndex + 1) * 1337;
@@ -292,8 +294,7 @@ function drawPacManCircularMaze(showEntrance) {
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
 
-    const ringsCount = 10; 
-    const ringWidth = (canvas.width / 2 - 30) / ringsCount; 
+    ringWidth = (canvas.width / 2 - 30) / ringsCount; 
     const grid = currentMazeGrid;
 
     const outerRingIdx = ringsCount - 1;
@@ -359,7 +360,70 @@ function grid0_0_inward_fix(grid) {
     }
 }
 
-// Game Loop for Player Movement
+// Precise Wall Collision Detection for Circular Maze
+function checkCollision(nx, ny) {
+    const canvas = document.getElementById('mazeCanvas');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const maxRadius = ringsCount * ringWidth;
+
+    let dx = nx - cx;
+    let dy = ny - cy;
+    let distFromCenter = Math.sqrt(dx * dx + dy * dy);
+    let angle = Math.atan2(dy, dx);
+    if (angle < 0) angle += 2 * Math.PI;
+
+    // Check outer boundary and center bounds
+    const outerRingIdx = ringsCount - 1;
+    let outerCellCount = currentMazeGrid[outerRingIdx].length;
+    let outerThetaIdx = Math.floor((angle / (2 * Math.PI)) * outerCellCount);
+    let isOuterEntrance = (outerRingIdx === outerRingIdx && outerThetaIdx === chosenEntranceIndex && !currentMazeGrid[outerRingIdx][outerThetaIdx].walls.outward);
+
+    if (distFromCenter > maxRadius - playerRadius) {
+        if (!isOuterEntrance || distFromCenter > maxRadius + 5) {
+            return true;
+        }
+    }
+    if (distFromCenter < ringWidth - playerRadius && currentMazeGrid[0][0].walls.inward) {
+        return true;
+    }
+
+    // Check specific cell walls based on player position
+    let r = Math.floor(distFromCenter / ringWidth);
+    if (r < 0) r = 0;
+    if (r >= ringsCount) r = ringsCount - 1;
+
+    let ringCells = currentMazeGrid[r];
+    let t = Math.floor((angle / (2 * Math.PI)) * ringCells.length);
+    if (t < 0) t = 0;
+    if (t >= ringCells.length) t = ringCells.length - 1;
+
+    let cell = ringCells[t];
+    let startAngle = (t / cell.totalThetas) * 2 * Math.PI;
+    let endAngle = ((t + 1) / cell.totalThetas) * 2 * Math.PI;
+
+    let innerR = r * ringWidth;
+    let outerR = (r + 1) * ringWidth;
+
+    // Inward/Outward wall collision
+    if (cell.walls.inward && distFromCenter - playerRadius < innerR && r > 0) return true;
+    if (cell.walls.outward && distFromCenter + playerRadius > outerR && r < ringsCount - 1) return true;
+
+    // Clockwise/Counter-clockwise radial wall collision (approximate check near cell boundaries)
+    let cellMidAngle = (startAngle + endAngle) / 2;
+    let angleDiff = Math.abs(angle - cellMidAngle);
+    if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+
+    let arcLen = distFromCenter * angleDiff;
+    if (arcLen < playerRadius + 2) {
+        if (cell.walls.cw && angle > cellMidAngle) return true;
+        if (cell.walls.ccw && angle < cellMidAngle) return true;
+    }
+
+    return false;
+}
+
+// Game Loop for Player Movement with Collision
 function gameLoop() {
     if (playerActive) {
         let speed = 2;
@@ -372,8 +436,16 @@ function gameLoop() {
         if (keys['ArrowRight'] || keys['d'] || keys['D']) dx += speed;
 
         if (dx !== 0 || dy !== 0) {
-            playerX += dx;
-            playerY += dy;
+            let nextX = playerX + dx;
+            let nextY = playerY + dy;
+
+            // Axis-separated collision sliding mechanism
+            if (!checkCollision(nextX, playerY)) {
+                playerX = nextX;
+            }
+            if (!checkCollision(playerX, nextY)) {
+                playerY = nextY;
+            }
 
             const playerCircle = document.getElementById('player-circle');
             playerCircle.style.left = `${playerX}px`;
