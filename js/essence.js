@@ -230,9 +230,11 @@ function generateAndDrawPacManCircularMaze() {
     grid[0][0].walls.ccw = false;
     grid0_0_inward_fix(grid);
 
+    // ENTRANCE REMOVED: Keep all outer boundary walls intact so there is no gap/entrance anywhere on the maze perimeter.
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // RENDER ENTIRE MAZE STRUCTURE WITH FULL GLOW IN SELECTED PLAYER COLOR
+    // RENDER ENTIRE MAZE STRUCTURE FULLY COLORED AND GLOWING IN THE PLAYER'S CHOSEN COLOR WITH NO ENTRANCE GAP
     ctx.save();
     ctx.strokeStyle = selectedColorHex; 
     ctx.lineWidth = 2.5;
