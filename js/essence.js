@@ -15,6 +15,8 @@ const circleConfigs = [
 
 let selectedColorHex = '';
 let chosenMazeIndex = 0;
+let currentMazeGrid = null;
+let chosenEntranceIndex = null;
 
 function startGame() {
     const titleContainer = document.getElementById('title-container');
@@ -121,7 +123,17 @@ function finishSelection() {
         const mazeContainer = document.getElementById('maze-container');
         mazeContainer.style.display = 'flex';
         
-        generateAndDrawPacManCircularMaze(false);
+        // Generate and store the exact same maze instance & pre-pick the random entrance spot
+        currentMazeGrid = buildMazeGrid();
+        const outerRingIdx = currentMazeGrid.length - 1;
+        let seed = (chosenMazeIndex + 1) * 9999;
+        function tempRandom() {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+        }
+        chosenEntranceIndex = Math.floor(tempRandom() * currentMazeGrid[outerRingIdx].length);
+
+        drawPacManCircularMaze(false);
 
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
@@ -143,8 +155,8 @@ function closeMazeInstructions() {
     instructionBox.style.pointerEvents = 'none';
     setTimeout(() => {
         instructionBox.style.display = 'none';
-        // Redraw maze with a randomly placed outer entrance now visible
-        generateAndDrawPacManCircularMaze(true);
+        // Redraw the exact same stored maze, now revealing the entrance
+        drawPacManCircularMaze(true);
     }, 1000);
 }
 
@@ -164,18 +176,11 @@ class Cell {
     }
 }
 
-function generateAndDrawPacManCircularMaze(showEntrance) {
-    const canvas = document.getElementById('mazeCanvas');
-    const ctx = canvas.getContext('2d');
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-
+function buildMazeGrid() {
     const ringsCount = 10; 
-    const ringWidth = (canvas.width / 2 - 30) / ringsCount; 
     let grid = [];
 
-    // Seeded randomness combining chosenMazeIndex and dynamic randomness for random entrance spot
-    let seed = (chosenMazeIndex + 1) * 1337 + (showEntrance ? Math.floor(Math.random() * 9999) : 0);
+    let seed = (chosenMazeIndex + 1) * 1337;
     function random() {
         seed = (seed * 9301 + 49297) % 233280;
         return seed / 233280;
@@ -253,13 +258,22 @@ function generateAndDrawPacManCircularMaze(showEntrance) {
     grid[0][0].walls.ccw = false;
     grid0_0_inward_fix(grid);
 
-    // Random entrance on the outer boundary ring if showEntrance is true
-    const outerRingIdx = ringsCount - 1;
-    let outerCellsCount = grid[outerRingIdx].length;
-    let randomEntranceIndex = Math.floor(random() * outerCellsCount);
+    return grid;
+}
 
-    if (showEntrance) {
-        grid[outerRingIdx][randomEntranceIndex].walls.outward = false;
+function drawPacManCircularMaze(showEntrance) {
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    const ringsCount = 10; 
+    const ringWidth = (canvas.width / 2 - 30) / ringsCount; 
+    const grid = currentMazeGrid;
+
+    const outerRingIdx = ringsCount - 1;
+    if (showEntrance && chosenEntranceIndex !== null) {
+        grid[outerRingIdx][chosenEntranceIndex].walls.outward = false;
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
