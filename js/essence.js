@@ -30,7 +30,7 @@ let gameStarted = false;
 let gameTimer = 300; // 5 minutes in seconds
 let timerInterval = null;
 let orbsCollectedCount = 0;
-let glowTimeRemaining = 10; // Starts at 10 seconds
+let glowTimeRemaining = 20; // Starts at 20 seconds
 let activeOrbs = [];
 let hasEnteredMaze = false;
 
@@ -386,7 +386,7 @@ function triggerMazeEntry() {
     document.getElementById('maze-ui').style.display = 'block';
     startMainTimer();
 
-    // 4. Start glow countdown timer (10 seconds)
+    // 4. Start glow countdown timer (20 seconds)
     startGleamTimer();
 }
 
@@ -491,8 +491,8 @@ function checkOrbCollection() {
             orbsCollectedCount++;
             document.getElementById('orb-counter').innerText = orbsCollectedCount;
 
-            // Add 5 seconds of glow (max visual stack cap rules)
-            glowTimeRemaining = Math.min(glowTimeRemaining + 5, 25);
+            // Add 10 seconds of glow (max stack cap increased to 30)
+            glowTimeRemaining = Math.min(glowTimeRemaining + 10, 30);
             let playerCircle = document.getElementById('player-circle');
             playerCircle.style.opacity = '1';
             playerCircle.style.boxShadow = `0 0 25px ${selectedColorHex}`;
