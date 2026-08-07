@@ -19,6 +19,41 @@ const spellRegistry = {
 };
 
 // ==========================================
+// AUDIO TRANSITION UTILITY
+// ==========================================
+function fadeOutAudio(callback) {
+    const bgMusic = document.getElementById('bg-music');
+    if (!bgMusic) {
+        if (callback) callback();
+        return;
+    }
+
+    const fadeSteps = 30;
+    const fadeIntervalTime = 30; 
+    const volumeStep = bgMusic.volume / fadeSteps;
+
+    let fadeAudio = setInterval(() => {
+        if (bgMusic.volume - volumeStep > 0.01) {
+            bgMusic.volume -= volumeStep;
+        } else {
+            clearInterval(fadeAudio);
+            bgMusic.volume = 0;
+            bgMusic.pause();
+            if (callback) callback();
+        }
+    }, fadeIntervalTime);
+}
+
+function playAudio(src) {
+    const bgMusic = document.getElementById('bg-music');
+    if (!bgMusic) return;
+    bgMusic.src = src;
+    bgMusic.load();
+    bgMusic.volume = 1;
+    bgMusic.play().catch(e => console.log("Audio play prevented:", e));
+}
+
+// ==========================================
 // LEVEL 1: ESSENCE DEVELOPMENT
 // ==========================================
 const loreData = [
@@ -69,10 +104,10 @@ window.addEventListener('keyup', (e) => {
 function startGame() {
     const titleContainer = document.getElementById('title-container');
     const startBtn = document.getElementById('start-btn');
-    const bgMusic = document.getElementById('bg-music');
     const popupBox = document.getElementById('popup-box');
     
-    bgMusic.play().catch(e => console.log("Audio play prevented:", e));
+    // Play Level 1 Music
+    playAudio('assets/That%20Which%20Anchors.mp3');
 
     titleContainer.style.transition = 'opacity 0.5s ease';
     startBtn.style.transition = 'opacity 0.5s ease';
@@ -654,6 +689,9 @@ function transitionToLevel2() {
     
     for (let key in keys) { keys[key] = false; }
     
+    // Fade out Level 1 Audio
+    fadeOutAudio();
+
     const level1Container = document.getElementById('level1-container');
     level1Container.style.transition = 'opacity 1.5s ease';
     level1Container.style.opacity = '0';
@@ -774,6 +812,9 @@ function startLevel2() {
     if (selectedColorHex) {
         lvl2Player.color = selectedColorHex;
     }
+    
+    // Play Level 2 Music
+    playAudio('assets/Merciless%20Engines.mp3');
 
     document.getElementById("introScreen").style.display = "none";
     document.getElementById("resultsScreen").style.display = "none";
@@ -959,6 +1000,9 @@ function lvl2GameLoop() {
 function transitionToLevel3() {
     for (let key in keys) { keys[key] = false; }
     
+    // Fade out Level 2 Audio
+    fadeOutAudio();
+
     const level2Container = document.getElementById('level2-container');
     level2Container.style.transition = 'opacity 1.5s ease';
     level2Container.style.opacity = '0';
@@ -1047,6 +1091,9 @@ function startLevel3() {
     if (selectedColorHex) {
         lvl3Player.color = selectedColorHex;
     }
+
+    // Play Level 3 Music
+    playAudio('assets/Voltz.mp3');
 
     document.getElementById("lvl3IntroScreen").style.display = "none";
     document.getElementById("lvl3FailureScreen").style.display = "none";
@@ -1220,13 +1267,11 @@ function handleLvl3Failure() {
     document.getElementById("lvl3FailureScreen").style.display = "flex";
 }
 
-// Generate the final Stat Sheet text layout
 function buildFinalStatSheet() {
     const stats = window.playerStats;
     const hz = stats.finalHz;
     const v = stats.finalVoltage;
     
-    // Safety check for Orbs mapping
     let validOrbs = stats.orbsCollected;
     if (validOrbs < 1) validOrbs = 1;
     if (validOrbs > 20) validOrbs = 20;
@@ -1335,4 +1380,11 @@ function resetToLevel3Init() {
     document.getElementById("stabilityBar").style.width = "100%";
     document.getElementById("stabilityBar").style.backgroundColor = "#00ffcc";
     document.getElementById("voltageValue").innerText = "0.0 V";
+}
+
+// Final Game Reset Logic
+function rebootSystem() {
+    fadeOutAudio(() => {
+        location.reload();
+    });
 }
