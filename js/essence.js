@@ -123,7 +123,6 @@ function finishSelection() {
         const mazeContainer = document.getElementById('maze-container');
         mazeContainer.style.display = 'flex';
         
-        // Generate and store the exact same maze instance & pre-pick the random entrance spot
         currentMazeGrid = buildMazeGrid();
         const outerRingIdx = currentMazeGrid.length - 1;
         let seed = (chosenMazeIndex + 1) * 9999;
@@ -138,7 +137,7 @@ function finishSelection() {
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
 
-            // Show the second separate instruction popup box on top
+            // Show second instruction box
             const instructionBox = document.getElementById('maze-instruction-box');
             instructionBox.style.display = 'flex';
             instructionBox.style.pointerEvents = 'auto';
@@ -155,7 +154,6 @@ function closeMazeInstructions() {
     instructionBox.style.pointerEvents = 'none';
     setTimeout(() => {
         instructionBox.style.display = 'none';
-        // Redraw the exact same stored maze, now revealing the entrance
         drawPacManCircularMaze(true);
     }, 1000);
 }
@@ -278,7 +276,6 @@ function drawPacManCircularMaze(showEntrance) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // RENDER ENTIRE MAZE STRUCTURE FULLY COLORED AND GLOWING IN THE PLAYER'S CHOSEN COLOR
     ctx.save();
     ctx.strokeStyle = selectedColorHex; 
     ctx.lineWidth = 2.5;
