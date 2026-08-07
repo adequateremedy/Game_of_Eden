@@ -19,7 +19,7 @@ let currentMazeGrid = null;
 let chosenEntranceIndex = null;
 let playerX = 0;
 let playerY = 0;
-let playerRadius = 7;
+let playerRadius = 3; // Reduced collision hitbox
 let playerActive = false;
 let keys = {};
 let ringWidth = 0;
@@ -482,6 +482,7 @@ function checkOrbCollection() {
         let dy = playerY - orb.y;
         let distance = Math.sqrt(dx * dx + dy * dy);
 
+        // Orb collection radius slightly larger to feel responsive
         if (distance < playerRadius + 6) {
             // Collected!
             orb.element.remove();
@@ -572,81 +573,49 @@ function checkCollision(nx, ny) {
     return false;
 }
 
-// Game Loop for Player Movement with Polar Coordinates & Collision Sliding (Inverted Controls)
+// Game Loop for Player Movement with Entry Trigger & Collision (Restored standard X/Y controls)
 function gameLoop() {
     if (playerActive) {
-        let radialSpeed = 2; // pixels for inward/outward
-        let angularPixelSpeed = 2; // pixels along the curve
+        let speed = 2;
+        let dx = 0;
+        let dy = 0;
 
-        let dr = 0;
-        let dArc = 0;
+        if (keys['ArrowUp'] || keys['w'] || keys['W']) dy -= speed;
+        if (keys['ArrowDown'] || keys['s'] || keys['S']) dy += speed;
+        if (keys['ArrowLeft'] || keys['a'] || keys['A']) dx -= speed;
+        if (keys['ArrowRight'] || keys['d'] || keys['D']) dx += speed;
 
-        // Inverted axes
-        if (keys['ArrowUp'] || keys['w'] || keys['W']) dr += radialSpeed;
-        if (keys['ArrowDown'] || keys['s'] || keys['S']) dr -= radialSpeed;
-        if (keys['ArrowLeft'] || keys['a'] || keys['A']) dArc += angularPixelSpeed;
-        if (keys['ArrowRight'] || keys['d'] || keys['D']) dArc -= angularPixelSpeed;
-
-        if (dr !== 0 || dArc !== 0) {
-            const canvas = document.getElementById('mazeCanvas');
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
-
-            let currentR = Math.sqrt((playerX - cx)**2 + (playerY - cy)**2);
-            let currentTheta = Math.atan2(playerY - cy, playerX - cx);
-
-            let nextR = currentR + dr;
-            let nextTheta = currentTheta + (dArc / Math.max(currentR, 1)); // prevents divide by 0 at center
-
-            let nextX_both = cx + nextR * Math.cos(nextTheta);
-            let nextY_both = cy + nextR * Math.sin(nextTheta);
-
-            let nextX_radial = cx + nextR * Math.cos(currentTheta);
-            let nextY_radial = cy + nextR * Math.sin(currentTheta);
-
-            let nextX_angular = cx + currentR * Math.cos(nextTheta);
-            let nextY_angular = cy + currentR * Math.sin(nextTheta);
+        if (dx !== 0 || dy !== 0) {
+            let nextX = playerX + dx;
+            let nextY = playerY + dy;
 
             // Check if stepping across the entrance threshold for the very first time (fully inside before closing)
             if (!hasEnteredMaze) {
+                const canvas = document.getElementById('mazeCanvas');
+                let distToCenter = Math.sqrt((nextX - canvas.width/2)**2 + (nextY - canvas.height/2)**2);
                 let maxRadius = ringsCount * ringWidth;
                 
                 // If moving inward past outer perimeter boundary line fully, taking player radius into account
-                if (nextR < maxRadius - playerRadius - 4) {
-                    playerX = nextX_both;
-                    playerY = nextY_both;
+                if (distToCenter < maxRadius - playerRadius - 4) {
+                    playerX = nextX;
+                    playerY = nextY;
                     triggerMazeEntry();
                 } else {
                     // Normal entry slide constraint
-                    if (!checkCollision(nextX_both, nextY_both)) {
-                        playerX = nextX_both;
-                        playerY = nextY_both;
-                    } else if (!checkCollision(nextX_radial, nextY_radial)) {
-                        playerX = nextX_radial;
-                        playerY = nextY_radial;
-                    } else if (!checkCollision(nextX_angular, nextY_angular)) {
-                        playerX = nextX_angular;
-                        playerY = nextY_angular;
-                    }
+                    if (!checkCollision(nextX, playerY)) playerX = nextX;
+                    if (!checkCollision(playerX, nextY)) playerY = nextY;
                 }
             } else {
                 // Standard active gameplay collision sliding
-                if (!checkCollision(nextX_both, nextY_both)) {
-                    playerX = nextX_both;
-                    playerY = nextY_both;
-                } else if (!checkCollision(nextX_radial, nextY_radial)) {
-                    playerX = nextX_radial;
-                    playerY = nextY_radial;
-                } else if (!checkCollision(nextX_angular, nextY_angular)) {
-                    playerX = nextX_angular;
-                    playerY = nextY_angular;
-                }
+                if (!checkCollision(nextX, playerY)) playerX = nextX;
+                if (!checkCollision(playerX, nextY)) playerY = nextY;
 
                 // Check orb collection
                 checkOrbCollection();
 
                 // Check center reach win condition
-                let distToCenter = Math.sqrt((playerX - cx)**2 + (playerY - cy)**2);
+                const canvas = document.getElementById('mazeCanvas');
+                let distToCenter = Math.sqrt((playerX - canvas.width/2)**2 + (playerY - canvas.height/2)**2);
                 if (distToCenter < ringWidth) {
                     playerActive = false;
                     clearInterval(timerInterval);
