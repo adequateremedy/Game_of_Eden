@@ -126,7 +126,7 @@ function finishSelection() {
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
 
-            // Show the second instruction popup box on top
+            // Show the second separate instruction popup box on top
             const instructionBox = document.getElementById('maze-instruction-box');
             instructionBox.style.display = 'flex';
             instructionBox.style.pointerEvents = 'auto';
