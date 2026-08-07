@@ -4,8 +4,18 @@
 // GLOBAL MEMORY (For future STAT Sheet)
 // ==========================================
 window.playerStats = {
+    element: "",
+    auraColor: "",
     orbsCollected: 0,
-    finalHz: 0
+    finalHz: 0,
+    finalVoltage: 0
+};
+
+const spellRegistry = {
+    'Agni': ["Flame Bolt", "Blazing Aura", "Heat Vision", "Scorching Chains", "Cinder Swarm", "Flame Forging", "Dragon Breath", "Combustion Burst", "Solar Flare", "Magma Touch", "Heat Absorption", "Pyrokinetic Flight", "Lava Manipulation", "Ember Step", "Inferno Wave", "Ash Cloak", "Firestorm", "Volcanic Eruption", "Phoenix Rebirth", "Eternal Flame"],
+    'Jala': ["Water Jet", "Water Walking", "Aquatic Breathing", "Hydrokinetic Pull", "Rain Calling", "Crystal Ice Spears", "Ocean's Embrace", "Steam Burst", "Ice Shaping", "Frost Nova", "Whirlpool Creation", "Current Riding", "Purification", "Water Clone", "Glacial Prison", "Mist Form", "Healing Waters", "Tidal Wave", "Moon Tide Control", "Leviathan Summoning"],
+    'Prithvi': ["Stone Skin", "Gem Sight", "Root Snare", "Vine Whips", "Thorn Barrage", "Boulder Launch", "Mud Control", "Wall of Earth", "Crystal Growth", "Nature's Healing", "Mountain Strength", "Crystal Armor", "Burrowing", "Living Forest", "Metal Shaping", "Earthquake", "Petrification", "Terrain Sculpting", "Land Renewal", "Titan's Awakening"],
+    'Vayu': ["Wind Blast", "Feather Fall", "Air Sense", "Swift Current", "Air Shield", "Wind Blades", "Thunderclap", "Sound Manipulation", "Flight", "Tempest Wings", "Vacuum Sphere", "Invisibility Veil", "Lightning Strike", "Lightning Channeling", "Cloud Walking", "Pressure Crush", "Cyclone Creation", "Storm Calling", "Sky Gate", "Hurricane Manifestation"]
 };
 
 // ==========================================
@@ -19,10 +29,10 @@ const loreData = [
 ];
 
 const circleConfigs = [
-    { name: 'Agni', bg: '#ff0000', color: '#fff', shadow: '1px 1px 2px #000' },
-    { name: 'Jala', bg: '#0000ff', color: '#fff', shadow: '1px 1px 2px #000' },
-    { name: 'Prithvi', bg: '#00ff00', color: '#fff', shadow: '1px 1px 2px #000' },
-    { name: 'Vayu', bg: '#ffff00', color: '#000', shadow: 'none' }
+    { name: 'Agni', bg: '#ff0000', color: '#fff', shadow: '1px 1px 2px #000', aura: 'Red Aura' },
+    { name: 'Jala', bg: '#0000ff', color: '#fff', shadow: '1px 1px 2px #000', aura: 'Blue Aura' },
+    { name: 'Prithvi', bg: '#00ff00', color: '#fff', shadow: '1px 1px 2px #000', aura: 'Green Aura' },
+    { name: 'Vayu', bg: '#ffff00', color: '#000', shadow: 'none', aura: 'Yellow Aura' }
 ];
 
 let selectedColorHex = '';
@@ -45,7 +55,6 @@ let glowTimeRemaining = 20;
 let activeOrbs = [];
 let hasEnteredMaze = false;
 
-// Global input listeners
 window.addEventListener('keydown', (e) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
         e.preventDefault();
@@ -111,6 +120,10 @@ function fadeTextOut() {
 function selectCircle(selectedIndex) {
     selectedColorHex = circleConfigs[selectedIndex].bg;
     chosenMazeIndex = selectedIndex; 
+    
+    window.playerStats.element = circleConfigs[selectedIndex].name;
+    window.playerStats.auraColor = circleConfigs[selectedIndex].aura;
+
     const selectionText = document.getElementById('selection-text');
     selectionText.style.opacity = '0';
 
@@ -589,15 +602,12 @@ function gameLoop() {
                 const canvas = document.getElementById('mazeCanvas');
                 let distToCenter = Math.sqrt((playerX - canvas.width/2)**2 + (playerY - canvas.height/2)**2);
                 
-                // --- REACHED THE CENTER LOGIC ---
                 if (distToCenter < ringWidth) {
                     playerActive = false;
-                    clearInterval(timerInterval); // Stop timer immediately
+                    clearInterval(timerInterval);
                     
-                    // Save collected stats to global memory
                     window.playerStats.orbsCollected = orbsCollectedCount;
 
-                    // Fade out Maze & UI completely
                     const mazeContainer = document.getElementById('maze-container');
                     const mazeUI = document.getElementById('maze-ui');
                     
@@ -607,7 +617,6 @@ function gameLoop() {
                     mazeContainer.style.opacity = '0';
                     mazeUI.style.opacity = '0';
                     
-                    // After fade out completes, show transition popup
                     setTimeout(() => {
                         mazeContainer.style.display = 'none';
                         mazeUI.style.display = 'none';
@@ -635,7 +644,7 @@ requestAnimationFrame(gameLoop);
 
 
 // ==========================================
-// TRANSITION LOGIC
+// TRANSITION LOGIC L1 -> L2
 // ==========================================
 
 function transitionToLevel2() {
@@ -643,12 +652,12 @@ function transitionToLevel2() {
     transitionPopup.style.opacity = '0';
     transitionPopup.style.pointerEvents = 'none';
     
-    // Completely fade out level 1 container
+    for (let key in keys) { keys[key] = false; }
+    
     const level1Container = document.getElementById('level1-container');
     level1Container.style.transition = 'opacity 1.5s ease';
     level1Container.style.opacity = '0';
 
-    // Wait until level 1 is entirely invisible before beginning Level 2 fade-in
     setTimeout(() => {
         level1Container.style.display = 'none';
         transitionPopup.style.display = 'none';
@@ -657,7 +666,6 @@ function transitionToLevel2() {
         level2Container.style.display = 'flex';
         level2Container.style.opacity = '0';
         
-        // Brief delay to register flex display before forcing opacity transition
         setTimeout(() => {
             level2Container.style.transition = 'opacity 1.5s ease';
             level2Container.style.opacity = '1';
@@ -763,13 +771,14 @@ function generateLvl2Maze() {
 }
 
 function startLevel2() {
-    // Keep user's chosen essence color from level 1 if available
     if (selectedColorHex) {
         lvl2Player.color = selectedColorHex;
     }
 
     document.getElementById("introScreen").style.display = "none";
     document.getElementById("resultsScreen").style.display = "none";
+    
+    for (let key in keys) { keys[key] = false; }
     
     generateLvl2Maze();
     
@@ -915,7 +924,7 @@ function handleLvl2Complete() {
     cancelAnimationFrame(lvl2AnimationFrameId);
     
     const scores = calculateLvl2Metrics();
-    window.playerStats.finalHz = scores.finalHz; // Save to global stats
+    window.playerStats.finalHz = scores.finalHz; 
     
     document.getElementById("hzDisplay").innerText = scores.finalHz.toFixed(2) + " Hz";
     document.getElementById("mathDisplay").innerHTML = `<strong>CALIBRATION SUMMARY:</strong><br> Baseline Pacing Signature: ${scores.baselineHz.toFixed(1)} Hz<br> Pink Node Modifier (${lvl2PinkCollected} collected): +${(lvl2PinkCollected * 5.0).toFixed(1)} Hz<br> Brown Node Modifier (${lvl2BrownCollected} collected): -${(lvl2BrownCollected * 5.0).toFixed(1)} Hz<br> <span style="color:#00ffcc;">Formula: ${scores.baselineHz.toFixed(1)} + ${(lvl2PinkCollected * 5.0).toFixed(1)} - ${(lvl2BrownCollected * 5.0).toFixed(1)} = ${scores.finalHz.toFixed(2)} Hz</span>`;
@@ -943,13 +952,387 @@ function lvl2GameLoop() {
     lvl2AnimationFrameId = requestAnimationFrame(lvl2GameLoop);
 }
 
-function resetToLevel2Intro() {
-    document.getElementById("resultsScreen").style.display = "none";
-    document.getElementById("introScreen").style.display = "flex";
+
+// ==========================================
+// TRANSITION LOGIC L2 -> L3
+// ==========================================
+function transitionToLevel3() {
+    for (let key in keys) { keys[key] = false; }
     
-    if (lvl2Ctx) lvl2Ctx.clearRect(0, 0, lvl2Canvas.width, lvl2Canvas.height);
+    const level2Container = document.getElementById('level2-container');
+    level2Container.style.transition = 'opacity 1.5s ease';
+    level2Container.style.opacity = '0';
+
+    setTimeout(() => {
+        level2Container.style.display = 'none';
+        
+        const level3Container = document.getElementById('level3-container');
+        level3Container.style.display = 'flex';
+        level3Container.style.opacity = '0';
+        
+        setTimeout(() => {
+            level3Container.style.transition = 'opacity 1.5s ease';
+            level3Container.style.opacity = '1';
+        }, 50);
+        
+    }, 1500);
+}
+
+
+// ==========================================
+// LEVEL 3: AMPLITUDE SYNTHESIS (Power Structure)
+// ==========================================
+const lvl3Canvas = document.getElementById("lvl3GameCanvas");
+const lvl3Ctx = lvl3Canvas ? lvl3Canvas.getContext("2d") : null;
+
+const lvl3GameTimeLimit = 60; 
+let lvl3AnimationFrameId;
+let lvl3GameActive = false;
+
+const lvl3Player = {
+    x: 400,
+    y: 400,
+    radius: 11,
+    speed: 5,
+    stability: 100,
+    color: "#ff3366"
+};
+
+const p1 = { x: 400, y: 40 };
+const p2 = { x: 80,  y: 410 };
+const p3 = { x: 720, y: 410 };
+
+const rods = [
+    { id: 0, x: p1.x, y: p1.y + 30, active: false, radius: 25 }, 
+    { id: 1, x: p2.x + 35, y: p2.y - 20, active: false, radius: 25 }, 
+    { id: 2, x: p3.x - 35, y: p3.y - 20, active: false, radius: 25 }  
+];
+
+let lvl3StartTime;
+let lvl3TimeRemaining = lvl3GameTimeLimit;
+let currentActiveRodIndex = -1;
+let rodSwitchTimer = 0;
+
+let activeDistanceTraveled = 0;
+let lvl3LastPlayerX = 0;
+let lvl3LastPlayerY = 0;
+let activeRodAbsorptionTicks = 0;
+
+let anomalies = [];
+
+function isPointInTriangle(pt, v1, v2, v3) {
+    let d1 = (pt.x - v2.x) * (v1.y - v2.y) - (v1.x - v2.x) * (pt.y - v2.y);
+    let d2 = (pt.x - v3.x) * (v2.y - v3.y) - (v2.x - v3.x) * (pt.y - v3.y);
+    let d3 = (pt.x - v1.x) * (v3.y - v1.y) - (v3.x - v1.x) * (pt.y - v1.y);
     
-    document.getElementById("timerValue").innerText = "60.0";
-    document.getElementById("pacingValue").innerText = "Calculating...";
-    document.getElementById("modValue").innerText = "0.0 Hz";
+    let has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+    let has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+    return !(has_neg && has_pos);
+}
+
+function spawnAnomalies() {
+    anomalies = [];
+    for(let i=0; i<4; i++) {
+        anomalies.push({
+            x: 400,
+            y: 220,
+            vx: (Math.random() - 0.5) * 7,
+            vy: (Math.random() - 0.5) * 7,
+            radius: 8
+        });
+    }
+}
+
+function startLevel3() {
+    if (selectedColorHex) {
+        lvl3Player.color = selectedColorHex;
+    }
+
+    document.getElementById("lvl3IntroScreen").style.display = "none";
+    document.getElementById("lvl3FailureScreen").style.display = "none";
+    document.getElementById("lvl3ResultsScreen").style.display = "none";
+    
+    for (let key in keys) { keys[key] = false; }
+    
+    lvl3Player.x = 400;
+    lvl3Player.y = 350;
+    lvl3Player.stability = 100;
+    activeDistanceTraveled = 0;
+    activeRodAbsorptionTicks = 0;
+    lvl3LastPlayerX = lvl3Player.x;
+    lvl3LastPlayerY = lvl3Player.y;
+    
+    spawnAnomalies();
+    currentActiveRodIndex = Math.floor(Math.random() * 3);
+    rods.forEach((r, idx) => r.active = (idx === currentActiveRodIndex));
+    rodSwitchTimer = 0;
+    
+    lvl3StartTime = performance.now();
+    lvl3GameActive = true;
+    lvl3GameLoop();
+}
+
+function updateLvl3SimulationLogic() {
+    let nextX = lvl3Player.x;
+    let nextY = lvl3Player.y;
+    
+    if (keys["arrowup"] || keys["w"]) nextY -= lvl3Player.speed;
+    if (keys["arrowdown"] || keys["s"]) nextY += lvl3Player.speed;
+    if (keys["arrowleft"] || keys["a"]) nextX -= lvl3Player.speed;
+    if (keys["arrowright"] || keys["d"]) nextX += lvl3Player.speed;
+    
+    if (isPointInTriangle({x: nextX, y: nextY}, p1, p2, p3)) {
+        lvl3Player.x = nextX;
+        lvl3Player.y = nextY;
+    }
+    
+    let deltaMove = Math.sqrt(Math.pow(lvl3Player.x - lvl3LastPlayerX, 2) + Math.pow(lvl3Player.y - lvl3LastPlayerY, 2));
+    activeDistanceTraveled += deltaMove;
+    lvl3LastPlayerX = lvl3Player.x;
+    lvl3LastPlayerY = lvl3Player.y;
+    
+    rodSwitchTimer += 1/60;
+    if (rodSwitchTimer >= 4.0) {
+        rodSwitchTimer = 0;
+        currentActiveRodIndex = (currentActiveRodIndex + Math.floor(Math.random() * 2) + 1) % 3;
+        rods.forEach((r, idx) => r.active = (idx === currentActiveRodIndex));
+    }
+    
+    let targetRod = rods[currentActiveRodIndex];
+    let distToRod = Math.sqrt(Math.pow(lvl3Player.x - targetRod.x, 2) + Math.pow(lvl3Player.y - targetRod.y, 2));
+    if (distToRod <= targetRod.radius + lvl3Player.radius + 15) {
+        activeRodAbsorptionTicks++;
+    }
+    
+    anomalies.forEach(anom => {
+        let nextAnomX = anom.x + anom.vx;
+        let nextAnomY = anom.y + anom.vy;
+        
+        if (!isPointInTriangle({x: nextAnomX, y: nextAnomY}, p1, p2, p3)) {
+            anom.vx *= -1;
+            anom.vy *= -1;
+            anom.x += anom.vx;
+            anom.y += anom.vy;
+        } else {
+            anom.x = nextAnomX;
+            anom.y = nextAnomY;
+        }
+        
+        let distToPlayer = Math.sqrt(Math.pow(lvl3Player.x - anom.x, 2) + Math.pow(lvl3Player.y - anom.y, 2));
+        if (distToPlayer < lvl3Player.radius + anom.radius) {
+            lvl3Player.stability -= 0.65; 
+        }
+    });
+    
+    if (lvl3Player.stability <= 0) {
+        lvl3Player.stability = 0;
+        handleLvl3Failure();
+    }
+}
+
+function drawLvl3Graphics() {
+    if (!lvl3Ctx) return;
+    
+    lvl3Ctx.clearRect(0, 0, lvl3Canvas.width, lvl3Canvas.height);
+    
+    lvl3Ctx.strokeStyle = "#22222a";
+    lvl3Ctx.lineWidth = 3;
+    lvl3Ctx.beginPath();
+    lvl3Ctx.moveTo(p1.x, p1.y);
+    lvl3Ctx.lineTo(p2.x, p2.y);
+    lvl3Ctx.lineTo(p3.x, p3.y);
+    lvl3Ctx.closePath();
+    lvl3Ctx.stroke();
+    
+    rods.forEach(rod => {
+        lvl3Ctx.beginPath();
+        lvl3Ctx.arc(rod.x, rod.y, rod.radius, 0, Math.PI * 2);
+        if (rod.active) {
+            lvl3Ctx.fillStyle = "rgba(255, 51, 102, 0.2)";
+            lvl3Ctx.fill();
+            lvl3Ctx.strokeStyle = "#ff3366";
+            lvl3Ctx.lineWidth = 2;
+            lvl3Ctx.shadowBlur = 15;
+            lvl3Ctx.shadowColor = "#ff3366";
+            lvl3Ctx.stroke();
+            lvl3Ctx.shadowBlur = 0;
+        } else {
+            lvl3Ctx.fillStyle = "#14141c";
+            lvl3Ctx.fill();
+            lvl3Ctx.strokeStyle = "#333344";
+            lvl3Ctx.lineWidth = 1;
+            lvl3Ctx.stroke();
+        }
+        
+        lvl3Ctx.beginPath();
+        lvl3Ctx.arc(rod.x, rod.y, 4, 0, Math.PI * 2);
+        lvl3Ctx.fillStyle = rod.active ? "#ff3366" : "#444";
+        lvl3Ctx.fill();
+    });
+    
+    anomalies.forEach(anom => {
+        lvl3Ctx.beginPath();
+        lvl3Ctx.arc(anom.x, anom.y, anom.radius, 0, Math.PI * 2);
+        lvl3Ctx.fillStyle = "#00ffcc";
+        lvl3Ctx.shadowBlur = 8;
+        lvl3Ctx.shadowColor = "#00ffcc";
+        lvl3Ctx.fill();
+        lvl3Ctx.shadowBlur = 0;
+    });
+    
+    lvl3Ctx.beginPath();
+    lvl3Ctx.arc(lvl3Player.x, lvl3Player.y, lvl3Player.radius, 0, Math.PI * 2);
+    lvl3Ctx.fillStyle = lvl3Player.color;
+    lvl3Ctx.shadowBlur = 12;
+    lvl3Ctx.shadowColor = lvl3Player.color;
+    lvl3Ctx.fill();
+    lvl3Ctx.shadowBlur = 0;
+}
+
+function calculateVoltageOutput() {
+    let velocityRatio = Math.min(1, activeDistanceTraveled / 9500);
+    let baseVoltage = 50.0 + (velocityRatio * 40.0);
+    
+    let surgeAddition = (activeRodAbsorptionTicks / 60) * 2.2;
+    let finalVoltage = baseVoltage + surgeAddition;
+    
+    if (finalVoltage > 120.0) finalVoltage = 120.0;
+    if (finalVoltage < 40.0) finalVoltage = 40.0;
+    
+    return { baseVoltage, surgeAddition, finalVoltage };
+}
+
+function updateLvl3HUDMetrics(liveVoltage) {
+    document.getElementById("lvl3TimerValue").innerText = Math.max(0, lvl3TimeRemaining).toFixed(1);
+    document.getElementById("stabilityBar").style.width = lvl3Player.stability + "%";
+    document.getElementById("voltageValue").innerText = liveVoltage.toFixed(1) + " V";
+    
+    if (lvl3Player.stability < 35) {
+        document.getElementById("stabilityBar").style.backgroundColor = "#ff3366";
+    } else {
+        document.getElementById("stabilityBar").style.backgroundColor = "#00ffcc";
+    }
+}
+
+function handleLvl3Failure() {
+    lvl3GameActive = false;
+    cancelAnimationFrame(lvl3AnimationFrameId);
+    document.getElementById("lvl3FailureScreen").style.display = "flex";
+}
+
+// Generate the final Stat Sheet text layout
+function buildFinalStatSheet() {
+    const stats = window.playerStats;
+    const hz = stats.finalHz;
+    const v = stats.finalVoltage;
+    
+    // Safety check for Orbs mapping
+    let validOrbs = stats.orbsCollected;
+    if (validOrbs < 1) validOrbs = 1;
+    if (validOrbs > 20) validOrbs = 20;
+    
+    const element = stats.element || "Agni";
+    const aura = stats.auraColor || "Red Aura";
+    const spellName = spellRegistry[element][validOrbs - 1];
+    
+    let hzProfile = "";
+    let hzText = "";
+    if (hz <= 60.0) {
+        hzProfile = "Escalating Delivery";
+        hzText = `Due to a low-frequency signature of ${hz.toFixed(1)} Hz, energy pools slowly over time, building intense force the longer you refrain from firing.`;
+    } else if (hz <= 100.0) {
+        hzProfile = "Equilibrium Delivery";
+        hzText = `Due to a stable-frequency signature of ${hz.toFixed(1)} Hz, energy tracks at standard stability with power metrics remaining fixed across usage states.`;
+    } else if (hz <= 120.0) {
+        hzProfile = "Volatile Burst Delivery";
+        hzText = `Due to a high-frequency signature of ${hz.toFixed(1)} Hz, the structures spin up instantly but suffer high decay factors if held.`;
+    } else {
+        hzProfile = "Rapid Response Kinetic";
+        hzText = `Due to an ultra-high frequency signature of ${hz.toFixed(1)} Hz, rapid generation speeds allow for near-instant execution with lighter direct pressure.`;
+    }
+    
+    let vProfile = "";
+    let vText = "";
+    if (v < 70.0) {
+        vProfile = "Dense Core Profile";
+        vText = `The ${v.toFixed(1)}V amplitude calibration condenses the baseline metrics, providing an exceptionally high minimum damage floor so the elemental attack never hits softly.`;
+    } else if (v < 100.0) {
+        vProfile = "Standard Profile";
+        vText = `The ${v.toFixed(1)}V amplitude calibration provides a balanced structural scale, maintaining standard impact rules against targets.`;
+    } else {
+        vProfile = "Surge Threat Multiplier";
+        vText = `The ${v.toFixed(1)}V amplitude calibration grants massive energy spikes, introducing volatile critical multipliers to terminal output.`;
+    }
+    
+    let flavorFlav = {
+        'Agni': 'combustive energies out of the surrounding thermal field',
+        'Jala': 'fluid dynamics out of atmospheric moisture and localized water sources',
+        'Prithvi': 'dense seismic force out of the terrestrial crust',
+        'Vayu': 'spinning vortex structures out of atmospheric currents'
+    };
+    
+    let tier = validOrbs <= 5 ? "Novice" : validOrbs <= 10 ? "Adept" : validOrbs <= 15 ? "Expert" : "Master";
+
+    let statHTML = `
+============================================================<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AMPLITUDE SYNTHESIS FINALIZED<br>
+============================================================<br>
+ CORE ELEMENT SELECTION : ${element.toUpperCase()} (${aura} Bound)<br>
+ SPELL ARCHETYPE LOCKED : ${spellName.toUpperCase()} (${stats.orbsCollected} Orbs Logged)<br>
+ RESONANCE ASSIGNMENT&nbsp;&nbsp; : ${hz.toFixed(1)} Hz (${hzProfile})<br>
+ AMPLITUDE COEFFICIENT&nbsp; : ${v.toFixed(1)} V (${vProfile})<br>
+<br>
+ STRUCTURAL LOGIC RECORD:<br>
+ "Subject harnesses the ${tier} technique [${spellName}], drawing <br>
+ ${flavorFlav[element]}. <br>
+<br>
+ ${hzText} <br>
+ ${vText}"<br>
+============================================================
+    `;
+    return statHTML;
+}
+
+function handleLvl3Complete() {
+    lvl3GameActive = false;
+    cancelAnimationFrame(lvl3AnimationFrameId);
+    
+    const scores = calculateVoltageOutput();
+    window.playerStats.finalVoltage = scores.finalVoltage;
+    
+    document.getElementById("lvl3SummaryDisplay").innerHTML = buildFinalStatSheet();
+    document.getElementById("lvl3ResultsScreen").style.display = "flex";
+}
+
+function lvl3GameLoop() {
+    if (!lvl3GameActive) return;
+    
+    let runtimeSeconds = (performance.now() - lvl3StartTime) / 1000;
+    lvl3TimeRemaining = lvl3GameTimeLimit - runtimeSeconds;
+    
+    if (lvl3TimeRemaining <= 0) {
+        handleLvl3Complete();
+        return;
+    }
+    
+    updateLvl3SimulationLogic();
+    drawLvl3Graphics();
+    
+    const liveCalc = calculateVoltageOutput();
+    updateLvl3HUDMetrics(liveCalc.finalVoltage);
+    
+    lvl3AnimationFrameId = requestAnimationFrame(lvl3GameLoop);
+}
+
+function resetToLevel3Init() {
+    document.getElementById("lvl3ResultsScreen").style.display = "none";
+    document.getElementById("lvl3FailureScreen").style.display = "none";
+    document.getElementById("lvl3IntroScreen").style.display = "flex";
+    
+    if (lvl3Ctx) lvl3Ctx.clearRect(0, 0, lvl3Canvas.width, lvl3Canvas.height);
+    
+    document.getElementById("lvl3TimerValue").innerText = "60.0";
+    document.getElementById("stabilityBar").style.width = "100%";
+    document.getElementById("stabilityBar").style.backgroundColor = "#00ffcc";
+    document.getElementById("voltageValue").innerText = "0.0 V";
 }
