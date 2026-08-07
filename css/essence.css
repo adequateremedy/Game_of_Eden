@@ -256,23 +256,33 @@ h1 {
     transition: opacity 1.5s ease;
 }
 
-@keyframes subtleGlow {
-    0% { transform: scale(1); opacity: 0.6; box-shadow: 0 0 6px var(--glow-color); }
-    50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 16px var(--glow-color); }
-    100% { transform: scale(1); opacity: 0.6; box-shadow: 0 0 6px var(--glow-color); }
-}
-
-.maze-center-dot {
+/* Maze Instruction Box Overlay */
+#maze-instruction-box {
     position: absolute;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    animation: subtleGlow 3s infinite ease-in-out;
-    z-index: 10;
-    border: 2px solid #fff;
+    width: 560px;
+    background: rgba(0, 0, 0, 0.95);
+    border: 3px solid #b87333;
+    box-shadow: 0 0 20px rgba(184, 115, 51, 0.6);
+    z-index: 30;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 30px;
+    box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 1s ease;
+}
+
+#maze-instruction-box p {
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    white-space: pre-line;
+    color: #fff;
 }
 
 @keyframes fadeIn {
