@@ -17,8 +17,10 @@ let selectedColorHex = '';
 let chosenMazeIndex = 0;
 let currentMazeGrid = null;
 let chosenEntranceIndex = null;
-let playerSpawnX = 0;
-let playerSpawnY = 0;
+let playerX = 0;
+let playerY = 0;
+let playerActive = false;
+let keys = {};
 
 function startGame() {
     const titleContainer = document.getElementById('title-container');
@@ -158,15 +160,30 @@ function closeMazeInstructions() {
         instructionBox.style.display = 'none';
         drawPacManCircularMaze(true);
 
-        // Position and fade in player's colored circle right outside the entrance
+        // Position player's colored circle right outside the entrance
         const playerCircle = document.getElementById('player-circle');
         playerCircle.style.backgroundColor = selectedColorHex;
-        playerCircle.style.boxShadow = `0 0 15px ${selectedColorHex}`;
-        playerCircle.style.left = `${playerSpawnX}px`;
-        playerCircle.style.top = `${playerSpawnY}px`;
+        playerCircle.style.boxShadow = `0 0 20px ${selectedColorHex}`;
+        playerCircle.style.left = `${playerX}px`;
+        playerCircle.style.top = `${playerY}px`;
         playerCircle.style.opacity = '1';
+
+        // Enable movement listeners
+        playerActive = true;
     }, 1000);
 }
+
+// Keyboard input listeners
+window.addEventListener('keydown', (e) => {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+    }
+    keys[e.key] = true;
+});
+
+window.addEventListener('keyup', (e) => {
+    keys[e.key] = false;
+});
 
 class Cell {
     constructor(ring, thetaIndex, totalThetas) {
@@ -303,12 +320,11 @@ function drawPacManCircularMaze(showEntrance) {
             let startAngle = (t / cell.totalThetas) * 2 * Math.PI;
             let endAngle = ((t + 1) / cell.totalThetas) * 2 * Math.PI;
 
-            // Calculate exact pixel position right outside the chosen entrance for the player spawn
             if (showEntrance && r === outerRingIdx && t === chosenEntranceIndex) {
                 let midAngle = (startAngle + endAngle) / 2;
                 let spawnRadius = outerRadius + 18;
-                playerSpawnX = cx + spawnRadius * Math.cos(midAngle);
-                playerSpawnY = cy + spawnRadius * Math.sin(midAngle);
+                playerX = cx + spawnRadius * Math.cos(midAngle);
+                playerY = cy + spawnRadius * Math.sin(midAngle);
             }
 
             if (cell.walls.cw && r > 0) {
@@ -342,3 +358,29 @@ function grid0_0_inward_fix(grid) {
         }
     }
 }
+
+// Game Loop for Player Movement
+function gameLoop() {
+    if (playerActive) {
+        let speed = 2;
+        let dx = 0;
+        let dy = 0;
+
+        if (keys['ArrowUp'] || keys['w'] || keys['W']) dy -= speed;
+        if (keys['ArrowDown'] || keys['s'] || keys['S']) dy += speed;
+        if (keys['ArrowLeft'] || keys['a'] || keys['A']) dx -= speed;
+        if (keys['ArrowRight'] || keys['d'] || keys['D']) dx += speed;
+
+        if (dx !== 0 || dy !== 0) {
+            playerX += dx;
+            playerY += dy;
+
+            const playerCircle = document.getElementById('player-circle');
+            playerCircle.style.left = `${playerX}px`;
+            playerCircle.style.top = `${playerY}px`;
+        }
+    }
+    requestAnimationFrame(gameLoop);
+}
+
+requestAnimationFrame(gameLoop);
