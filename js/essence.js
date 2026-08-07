@@ -30,7 +30,6 @@ function fadeOutAudio(callback) {
         return;
     }
 
-    // Immediately terminate any existing intervals to prevent conflicts
     if (globalAudioFadeInterval) {
         clearInterval(globalAudioFadeInterval);
         globalAudioFadeInterval = null;
@@ -40,7 +39,6 @@ function fadeOutAudio(callback) {
     const fadeSteps = 20;
     const volStep = currentVol / fadeSteps;
 
-    // Safety net in case volume is already 0
     if (currentVol <= 0) {
         bgMusic.pause();
         if (callback) callback();
@@ -66,7 +64,6 @@ function playAudio(src) {
     const bgMusic = document.getElementById('bg-music');
     if (!bgMusic) return;
 
-    // Aggressively kill any running fades so they don't drag the new song's volume down
     if (globalAudioFadeInterval) {
         clearInterval(globalAudioFadeInterval);
         globalAudioFadeInterval = null;
@@ -77,7 +74,6 @@ function playAudio(src) {
     bgMusic.loop = true;
     bgMusic.volume = 1;
     
-    // Explicit load and play
     bgMusic.load();
     let playPromise = bgMusic.play();
     if (playPromise !== undefined) {
@@ -140,7 +136,6 @@ function startGame() {
     const startBtn = document.getElementById('start-btn');
     const popupBox = document.getElementById('popup-box');
     
-    // Play Level 1 Music directly using safe path names
     playAudio('assets/That Which Anchors.mp3');
 
     titleContainer.style.transition = 'opacity 0.5s ease';
@@ -723,7 +718,6 @@ function transitionToLevel2() {
     
     for (let key in keys) { keys[key] = false; }
     
-    // Fade out Level 1 Audio completely
     fadeOutAudio();
 
     const level1Container = document.getElementById('level1-container');
@@ -847,7 +841,6 @@ function startLevel2() {
         lvl2Player.color = selectedColorHex;
     }
     
-    // Play Level 2 Music securely
     playAudio('assets/Merciless Engines.mp3');
 
     document.getElementById("introScreen").style.display = "none";
@@ -1034,7 +1027,6 @@ function lvl2GameLoop() {
 function transitionToLevel3() {
     for (let key in keys) { keys[key] = false; }
     
-    // Fade out Level 2 Audio completely
     fadeOutAudio();
 
     const level2Container = document.getElementById('level2-container');
@@ -1126,7 +1118,6 @@ function startLevel3() {
         lvl3Player.color = selectedColorHex;
     }
 
-    // Play Level 3 Music securely
     playAudio('assets/Voltz.mp3');
 
     document.getElementById("lvl3IntroScreen").style.display = "none";
@@ -1429,8 +1420,6 @@ function rebootSystem() {
         }
     });
 
-    // Hard fallback: If the audio engine stalls for any reason whatsoever, 
-    // it will forcefully wipe and reload the browser after 1.5 seconds.
     setTimeout(() => {
         if (!hasReloaded) {
             hasReloaded = true;
