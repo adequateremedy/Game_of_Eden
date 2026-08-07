@@ -18,6 +18,7 @@ body, html {
     left: 0;
     width: 100%;
     height: 100%;
+    z-index: 10;
 }
 
 #background {
@@ -46,7 +47,7 @@ body, html {
     filter: drop-shadow(5px 5px 8px rgba(0, 0, 0, 1));
 }
 
-h1 {
+#level1-container h1 {
     font-family: 'Rye', serif;
     font-size: 5rem;
     margin: 0;
@@ -485,7 +486,6 @@ h1 {
     box-shadow: 0px 0px 25px rgba(0, 255, 204, 0.05);
 }
 
-/* Immersive Screen Overlays */
 .screen-overlay {
     position: absolute;
     top: 0;
@@ -551,4 +551,175 @@ h1 {
     background-color: #ffffff;
     box-shadow: 0 0 15px rgba(255,255,255,0.4);
     transform: scale(1.03);
+}
+
+/* =========================================
+   LEVEL 3 CSS 
+   ========================================= */
+#level3-container {
+    background-color: #050508;
+    color: #ffffff;
+    font-family: 'Courier New', Courier, monospace;
+    display: none; /* Flex when activated */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 200;
+    overflow: hidden;
+}
+
+#level3-container h1 {
+    margin: 0 0 5px 0;
+    color: #ff3366;
+    font-size: 24px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    -webkit-text-stroke: 0px;
+}
+
+#lvl3HudContainer {
+    width: 800px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0f0f14;
+    border: 2px solid #22222a;
+    padding: 12px 20px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.lvl3-hud-item {
+    color: #888;
+}
+
+.lvl3-hud-value {
+    color: #ff3366;
+    font-weight: bold;
+}
+
+#lvl3TimerValue {
+    color: #ffcc00;
+}
+
+#stabilityWrapper {
+    width: 200px;
+    height: 14px;
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 3px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 8px;
+}
+
+#stabilityBar {
+    width: 100%;
+    height: 100%;
+    background: #00ffcc;
+    transition: width 0.1s linear;
+}
+
+#lvl3GameContainer {
+    position: relative;
+    width: 800px;
+    height: 450px;
+}
+
+#lvl3GameCanvas {
+    border: 4px solid #22222a;
+    background-color: #0a0a0f;
+    box-shadow: 0px 0px 30px rgba(255, 51, 102, 0.05);
+}
+
+.lvl3-screen-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(5, 5, 8, 0.98);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+    padding: 40px;
+    border: 4px solid #22222a;
+}
+
+#lvl3IntroScreen p {
+    line-height: 1.7;
+    max-width: 620px;
+    color: #a0a0b5;
+    font-size: 15px;
+    margin-bottom: 35px;
+    text-align: justify;
+}
+
+.failure-title {
+    color: #ff3366;
+    font-size: 32px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+    text-shadow: 0 0 15px rgba(255,51,102,0.5);
+}
+
+.voltage-result {
+    font-size: 56px;
+    color: #ff3366;
+    margin: 20px 0;
+    font-weight: bold;
+    text-shadow: 0 0 20px rgba(255,51,102,0.4);
+    letter-spacing: 2px;
+}
+
+.summary-box {
+    background: #111116;
+    padding: 20px 30px;
+    border-radius: 4px;
+    border: 1px solid #2a2a35;
+    margin-bottom: 30px;
+    font-size: 14px;
+    color: #7c7c8c;
+    line-height: 1.6;
+    text-align: left;
+    width: 90%;
+    max-width: 650px;
+}
+
+#level3-container button {
+    background-color: #ff3366;
+    color: #050508;
+    border: none;
+    padding: 14px 32px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    box-shadow: 0 0 12px rgba(255,51,102,0.3);
+    transition: 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#level3-container button:hover {
+    background-color: #ffffff;
+    color: #050508;
+    box-shadow: 0 0 20px rgba(255,255,255,0.5);
+    transform: scale(1.02);
 }
