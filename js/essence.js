@@ -520,7 +520,7 @@ function checkCollision(nx, ny) {
     let isOuterEntrance = (!hasEnteredMaze && outerThetaIdx === chosenEntranceIndex && !currentMazeGrid[outerRingIdx][outerThetaIdx].walls.outward);
 
     if (distFromCenter > maxRadius - playerRadius) {
-        if (!isOuterEntrance || distFromCenter > maxRadius + 5) {
+        if (!isOuterEntrance || distFromCenter > maxRadius + 25) {
             return true;
         }
     }
