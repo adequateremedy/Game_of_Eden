@@ -230,17 +230,15 @@ function generateAndDrawPacManCircularMaze() {
     grid[0][0].walls.ccw = false;
     grid0_0_inward_fix(grid);
 
-    const outerRingIdx = ringsCount - 1;
-    grid[outerRingIdx][0].walls.outward = false;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // RENDER INTERIOR MAZE WALLS (Standard copper tone)
-    ctx.strokeStyle = '#b87333'; 
+    // RENDER ENTIRE MAZE STRUCTURE WITH FULL GLOW IN SELECTED PLAYER COLOR
+    ctx.save();
+    ctx.strokeStyle = selectedColorHex; 
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
-    ctx.shadowBlur = 4;
-    ctx.shadowColor = '#b87333';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = selectedColorHex;
 
     for (let r = 0; r < ringsCount; r++) {
         let ringCells = grid[r];
@@ -264,28 +262,12 @@ function generateAndDrawPacManCircularMaze() {
                 ctx.arc(cx, cy, innerRadius, startAngle, endAngle);
                 ctx.stroke();
             }
-        }
-    }
-
-    // RENDER OUTER PERIMETER RING WITH A SUBTLE, SOFT AMBIENT GLOW MATCHING THE CHOSEN COLOR
-    ctx.save();
-    ctx.strokeStyle = selectedColorHex; 
-    ctx.lineWidth = 2;
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = selectedColorHex;
-
-    let outerRingCells = grid[ringsCount - 1];
-    let outerRadius = ringsCount * ringWidth;
-
-    for (let t = 0; t < outerRingCells.length; t++) {
-        let cell = outerRingCells[t];
-        let startAngle = (t / cell.totalThetas) * 2 * Math.PI;
-        let endAngle = ((t + 1) / cell.totalThetas) * 2 * Math.PI;
-
-        if (cell.walls.outward) {
-            ctx.beginPath();
-            ctx.arc(cx, cy, outerRadius, startAngle, endAngle);
-            ctx.stroke();
+            
+            if (cell.walls.outward && r === ringsCount - 1) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, outerRadius, startAngle, endAngle);
+                ctx.stroke();
+            }
         }
     }
     ctx.restore();
