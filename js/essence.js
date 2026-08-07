@@ -400,7 +400,6 @@ function startMainTimer() {
 
         if (gameTimer <= 0) {
             clearInterval(timerInterval);
-            alert("Time has run out! Your Essence faded.");
             location.reload();
         }
     }, 1000);
@@ -421,8 +420,10 @@ function startGleamTimer() {
             playerCircle.style.opacity = opacityFactor;
         } else if (glowTimeRemaining <= 0) {
             clearInterval(glowInterval);
-            alert("Your glow has burned out! You must restart.");
-            location.reload();
+            playerCircle.style.opacity = '0';
+            setTimeout(() => {
+                location.reload();
+            }, 500);
         }
     }, 1000);
 }
@@ -582,8 +583,8 @@ function gameLoop() {
                 let distToCenter = Math.sqrt((nextX - canvas.width/2)**2 + (nextY - canvas.height/2)**2);
                 let maxRadius = ringsCount * ringWidth;
                 
-                // If moving inward past outer perimeter boundary line
-                if (distToCenter < maxRadius - 2) {
+                // If moving inward past outer perimeter boundary line fully
+                if (distToCenter < maxRadius - playerRadius - 2) {
                     playerX = nextX;
                     playerY = nextY;
                     triggerMazeEntry();
@@ -606,7 +607,6 @@ function gameLoop() {
                 if (distToCenter < ringWidth) {
                     playerActive = false;
                     clearInterval(timerInterval);
-                    alert(`Maze Stabilized! Orbs Collected: ${orbsCollectedCount}`);
                     location.reload();
                 }
             }
