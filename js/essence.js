@@ -1,4 +1,16 @@
 /* js/essence.js */
+
+// ==========================================
+// GLOBAL MEMORY (For future STAT Sheet)
+// ==========================================
+window.playerStats = {
+    orbsCollected: 0,
+    finalHz: 0
+};
+
+// ==========================================
+// LEVEL 1: ESSENCE DEVELOPMENT
+// ==========================================
 const loreData = [
     `Agni embodies an intense, consuming passion that ignites creativity and drives ambition forward with unstoppable momentum. This fierce energy easily spills over into a volatile, explosive anger when restricted, burning through boundaries with sharp impatience. Yet, beneath the aggression lies a warm, radiant joy that offers comfort, protection, and deep inspiration to those nearby. It also carries a sharp, critical judgment, fiercely cutting away falsehoods to seek absolute purity and truth. Finally, it harbors a restless anxiety, a constant, flickering fear of depletion that forces it to always seek new fuel to sustain its brilliant light.`,
     `Jala flows with profound, boundless empathy, effortlessly absorbing the unspoken emotions and hidden pains of the world. It carries a heavy, melancholic sadness, gently cradling grief like a deep, still ocean hidden away from the sun. This sorrow is balanced by a serene, tranquil peace, providing a soothing calm that heals friction and restores harmony. When disrupted, it reveals a fluid, shapeshifting insecurity, constantly adapting its form out of a deep fear of rejection or abandonment. Underneath its quiet surface, it holds a fiercely loyal, enduring love that binds relationships together with unbreakable emotional ties.`,
@@ -19,20 +31,31 @@ let currentMazeGrid = null;
 let chosenEntranceIndex = null;
 let playerX = 0;
 let playerY = 0;
-let playerRadius = 3; // Reduced collision hitbox
+let playerRadius = 3; 
 let playerActive = false;
 let keys = {};
 let ringWidth = 0;
 const ringsCount = 10;
 
-// Game State & Mechanics Variables
 let gameStarted = false;
-let gameTimer = 300; // 5 minutes in seconds
+let gameTimer = 300; 
 let timerInterval = null;
 let orbsCollectedCount = 0;
-let glowTimeRemaining = 20; // Starts at 20 seconds
+let glowTimeRemaining = 20; 
 let activeOrbs = [];
 let hasEnteredMaze = false;
+
+// Global input listeners
+window.addEventListener('keydown', (e) => {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+    }
+    keys[e.key.toLowerCase()] = true;
+});
+
+window.addEventListener('keyup', (e) => {
+    keys[e.key.toLowerCase()] = false;
+});
 
 function startGame() {
     const titleContainer = document.getElementById('title-container');
@@ -153,7 +176,6 @@ function finishSelection() {
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
 
-            // Show second instruction box
             const instructionBox = document.getElementById('maze-instruction-box');
             instructionBox.style.display = 'flex';
             instructionBox.style.pointerEvents = 'auto';
@@ -172,7 +194,6 @@ function closeMazeInstructions() {
         instructionBox.style.display = 'none';
         drawPacManCircularMaze(true);
 
-        // Position player's colored circle right outside the entrance
         const playerCircle = document.getElementById('player-circle');
         playerCircle.style.backgroundColor = selectedColorHex;
         playerCircle.style.boxShadow = `0 0 25px ${selectedColorHex}`;
@@ -180,22 +201,9 @@ function closeMazeInstructions() {
         playerCircle.style.top = `${playerY}px`;
         playerCircle.style.opacity = '1';
 
-        // Enable movement listeners for entry step
         playerActive = true;
     }, 1000);
 }
-
-// Keyboard input listeners
-window.addEventListener('keydown', (e) => {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
-        e.preventDefault();
-    }
-    keys[e.key] = true;
-});
-
-window.addEventListener('keyup', (e) => {
-    keys[e.key] = false;
-});
 
 class Cell {
     constructor(ring, thetaIndex, totalThetas) {
@@ -203,19 +211,13 @@ class Cell {
         this.thetaIndex = thetaIndex; 
         this.totalThetas = totalThetas;
         this.visited = false;
-        this.walls = {
-            inward: true,
-            outward: true,
-            cw: true,
-            ccw: true
-        };
+        this.walls = { inward: true, outward: true, cw: true, ccw: true };
         this.neighbors = [];
     }
 }
 
 function buildMazeGrid() {
     let grid = [];
-
     let seed = (chosenMazeIndex + 1) * 1337;
     function random() {
         seed = (seed * 9301 + 49297) % 233280;
@@ -310,7 +312,6 @@ function drawPacManCircularMaze(showEntrance) {
     if (showEntrance && chosenEntranceIndex !== null && !hasEnteredMaze) {
         grid[outerRingIdx][chosenEntranceIndex].walls.outward = false;
     } else if (hasEnteredMaze) {
-        // Entrance is closed
         grid[outerRingIdx][chosenEntranceIndex].walls.outward = true;
     }
 
@@ -372,25 +373,15 @@ function grid0_0_inward_fix(grid) {
     }
 }
 
-// Trigger 4 Simultaneous Events upon entering the maze
 function triggerMazeEntry() {
     hasEnteredMaze = true;
-    
-    // 1. Close entrance visually by redrawing maze
     drawPacManCircularMaze(true);
-
-    // 2. Spawn first 5 tiny white orbs
     spawnInitialOrbs();
-
-    // 3. Start 5 min countdown timer & show UI
     document.getElementById('maze-ui').style.display = 'block';
     startMainTimer();
-
-    // 4. Start glow countdown timer (20 seconds)
     startGleamTimer();
 }
 
-// Main 5-minute timer
 function startMainTimer() {
     timerInterval = setInterval(() => {
         gameTimer--;
@@ -405,17 +396,15 @@ function startMainTimer() {
     }, 1000);
 }
 
-// Glow countdown & fading mechanic
 function startGleamTimer() {
     let glowInterval = setInterval(() => {
         if (!playerActive) return;
         
         glowTimeRemaining--;
 
-        // Visual fade logic when glow drops to 5 seconds or below
         let playerCircle = document.getElementById('player-circle');
         if (glowTimeRemaining <= 5 && glowTimeRemaining > 0) {
-            let opacityFactor = glowTimeRemaining / 5; // Scales from 1 down to 0.2
+            let opacityFactor = glowTimeRemaining / 5; 
             playerCircle.style.boxShadow = `0 0 ${Math.floor(25 * opacityFactor)}px ${selectedColorHex}`;
             playerCircle.style.opacity = opacityFactor;
         } else if (glowTimeRemaining <= 0) {
@@ -428,7 +417,6 @@ function startGleamTimer() {
     }, 1000);
 }
 
-// Orb Management & Spawning Logic
 function spawnInitialOrbs() {
     for (let i = 0; i < 5; i++) {
         spawnSingleOrb();
@@ -440,7 +428,6 @@ function getRandomCellCoordinates() {
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
     
-    // Pick random ring (from 1 to 9) and random angle
     let r = Math.floor(Math.random() * (ringsCount - 1)) + 1;
     let ringCells = currentMazeGrid[r];
     let t = Math.floor(Math.random() * ringCells.length);
@@ -452,11 +439,10 @@ function getRandomCellCoordinates() {
     let ox = cx + midRadius * Math.cos(midAngle);
     let oy = cy + midRadius * Math.sin(midAngle);
 
-    // Ensure it's not within 10px of player's initial position
     let dx = ox - playerX;
     let dy = oy - playerY;
     if (Math.sqrt(dx*dx + dy*dy) < 15) {
-        return getRandomCellCoordinates(); // Retry if too close
+        return getRandomCellCoordinates(); 
     }
 
     return { x: ox, y: oy };
@@ -482,28 +468,23 @@ function checkOrbCollection() {
         let dy = playerY - orb.y;
         let distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Orb collection radius slightly larger to feel responsive
         if (distance < playerRadius + 6) {
-            // Collected!
             orb.element.remove();
             activeOrbs.splice(i, 1);
 
             orbsCollectedCount++;
             document.getElementById('orb-counter').innerText = orbsCollectedCount;
 
-            // Add 10 seconds of glow (max stack cap increased to 30)
             glowTimeRemaining = Math.min(glowTimeRemaining + 10, 30);
             let playerCircle = document.getElementById('player-circle');
             playerCircle.style.opacity = '1';
             playerCircle.style.boxShadow = `0 0 25px ${selectedColorHex}`;
 
-            // Spawn replacement orb
             spawnSingleOrb();
         }
     }
 }
 
-// Precise Wall Collision Detection for Circular Maze with angleDistance correction
 function checkCollision(nx, ny) {
     const canvas = document.getElementById('mazeCanvas');
     const cx = canvas.width / 2;
@@ -549,7 +530,6 @@ function checkCollision(nx, ny) {
     if (cell.walls.inward && distFromCenter - playerRadius < innerR && r > 0) return true;
     if (cell.walls.outward && distFromCenter + playerRadius > outerR && r < ringsCount - 1) return true;
 
-    // Corrected angle distance check against actual cell boundary walls (cw and ccw)
     function normalizeAngle(a) {
         while (a < 0) a += 2 * Math.PI;
         while (a >= 2 * Math.PI) a -= 2 * Math.PI;
@@ -564,7 +544,6 @@ function checkCollision(nx, ny) {
     if (angleToEnd > Math.PI) angleToEnd = 2 * Math.PI - angleToEnd;
     let arcDistEnd = distFromCenter * angleToEnd;
 
-    // Buffer tolerance for smooth sliding
     let wallBuffer = playerRadius + 1;
 
     if (cell.walls.ccw && arcDistStart < wallBuffer) return true;
@@ -573,53 +552,74 @@ function checkCollision(nx, ny) {
     return false;
 }
 
-// Game Loop for Player Movement with Entry Trigger & Collision (Restored standard X/Y controls)
 function gameLoop() {
     if (playerActive) {
         let speed = 2;
         let dx = 0;
         let dy = 0;
 
-        if (keys['ArrowUp'] || keys['w'] || keys['W']) dy -= speed;
-        if (keys['ArrowDown'] || keys['s'] || keys['S']) dy += speed;
-        if (keys['ArrowLeft'] || keys['a'] || keys['A']) dx -= speed;
-        if (keys['ArrowRight'] || keys['d'] || keys['D']) dx += speed;
+        if (keys['arrowup'] || keys['w']) dy -= speed;
+        if (keys['arrowdown'] || keys['s']) dy += speed;
+        if (keys['arrowleft'] || keys['a']) dx -= speed;
+        if (keys['arrowright'] || keys['d']) dx += speed;
 
         if (dx !== 0 || dy !== 0) {
             let nextX = playerX + dx;
             let nextY = playerY + dy;
 
-            // Check if stepping across the entrance threshold for the very first time (fully inside before closing)
             if (!hasEnteredMaze) {
                 const canvas = document.getElementById('mazeCanvas');
                 let distToCenter = Math.sqrt((nextX - canvas.width/2)**2 + (nextY - canvas.height/2)**2);
                 let maxRadius = ringsCount * ringWidth;
                 
-                // If moving inward past outer perimeter boundary line fully, taking player radius into account
                 if (distToCenter < maxRadius - playerRadius - 4) {
                     playerX = nextX;
                     playerY = nextY;
                     triggerMazeEntry();
                 } else {
-                    // Normal entry slide constraint
                     if (!checkCollision(nextX, playerY)) playerX = nextX;
                     if (!checkCollision(playerX, nextY)) playerY = nextY;
                 }
             } else {
-                // Standard active gameplay collision sliding
                 if (!checkCollision(nextX, playerY)) playerX = nextX;
                 if (!checkCollision(playerX, nextY)) playerY = nextY;
 
-                // Check orb collection
                 checkOrbCollection();
 
-                // Check center reach win condition
                 const canvas = document.getElementById('mazeCanvas');
                 let distToCenter = Math.sqrt((playerX - canvas.width/2)**2 + (playerY - canvas.height/2)**2);
+                
+                // --- REACHED THE CENTER LOGIC ---
                 if (distToCenter < ringWidth) {
                     playerActive = false;
-                    clearInterval(timerInterval);
-                    location.reload();
+                    clearInterval(timerInterval); // Stop timer immediately
+                    
+                    // Save collected stats to global memory
+                    window.playerStats.orbsCollected = orbsCollectedCount;
+
+                    // Fade out Maze & UI completely
+                    const mazeContainer = document.getElementById('maze-container');
+                    const mazeUI = document.getElementById('maze-ui');
+                    
+                    mazeContainer.style.transition = 'opacity 1.5s ease';
+                    mazeUI.style.transition = 'opacity 1.5s ease';
+                    
+                    mazeContainer.style.opacity = '0';
+                    mazeUI.style.opacity = '0';
+                    
+                    // After fade out completes, show transition popup
+                    setTimeout(() => {
+                        mazeContainer.style.display = 'none';
+                        mazeUI.style.display = 'none';
+                        
+                        const transitionPopup = document.getElementById('transition-popup-box');
+                        transitionPopup.style.display = 'flex';
+                        transitionPopup.style.pointerEvents = 'auto';
+                        
+                        setTimeout(() => {
+                            transitionPopup.style.opacity = '1';
+                        }, 50);
+                    }, 1500);
                 }
             }
 
@@ -632,3 +632,324 @@ function gameLoop() {
 }
 
 requestAnimationFrame(gameLoop);
+
+
+// ==========================================
+// TRANSITION LOGIC
+// ==========================================
+
+function transitionToLevel2() {
+    const transitionPopup = document.getElementById('transition-popup-box');
+    transitionPopup.style.opacity = '0';
+    transitionPopup.style.pointerEvents = 'none';
+    
+    // Completely fade out level 1 container
+    const level1Container = document.getElementById('level1-container');
+    level1Container.style.transition = 'opacity 1.5s ease';
+    level1Container.style.opacity = '0';
+
+    // Wait until level 1 is entirely invisible before beginning Level 2 fade-in
+    setTimeout(() => {
+        level1Container.style.display = 'none';
+        transitionPopup.style.display = 'none';
+        
+        const level2Container = document.getElementById('level2-container');
+        level2Container.style.display = 'flex';
+        level2Container.style.opacity = '0';
+        
+        // Brief delay to register flex display before forcing opacity transition
+        setTimeout(() => {
+            level2Container.style.transition = 'opacity 1.5s ease';
+            level2Container.style.opacity = '1';
+        }, 50);
+        
+    }, 1500);
+}
+
+
+// ==========================================
+// LEVEL 2: FREQUENCY TUNING
+// ==========================================
+
+const lvl2Canvas = document.getElementById("gameCanvas");
+const lvl2Ctx = lvl2Canvas ? lvl2Canvas.getContext("2d") : null;
+
+const lvl2Duration = 60;
+const lvl2TileSize = 40;
+const lvl2Cols = 20;
+const lvl2Rows = 10;
+
+const lvl2Player = {
+    x: 60,
+    y: 340,
+    radius: 12,
+    speed: 4,
+    color: "#00ffcc"
+};
+
+let lvl2StartTime;
+let lvl2TimeRemaining = lvl2Duration;
+let lvl2GameActive = false;
+let lvl2AnimationFrameId;
+
+let lvl2TotalDistanceMoved = 0;
+let lvl2LastPlayerX = 0;
+let lvl2LastPlayerY = 0;
+let lvl2PinkCollected = 0;
+let lvl2BrownCollected = 0;
+
+let lvl2MazeGrid = [];
+
+function generateLvl2Maze() {
+    lvl2MazeGrid = Array(lvl2Rows).fill().map(() => Array(lvl2Cols).fill(1));
+    
+    const stack = [];
+    const startC = 1;
+    const startR = lvl2Rows - 2;
+    lvl2MazeGrid[startR][startC] = 0;
+    stack.push([startR, startC]);
+
+    while (stack.length > 0) {
+        const [r, c] = stack[stack.length - 1];
+        const neighbors = [];
+
+        const directions = [[-2,0], [2,0], [0,-2], [0,2]];
+        for (let [dr, dc] of directions) {
+            const nr = r + dr;
+            const nc = c + dc;
+            if (nr > 0 && nr < lvl2Rows - 1 && nc > 0 && nc < lvl2Cols - 1) {
+                if (lvl2MazeGrid[nr][nc] === 1) {
+                    neighbors.push([nr, nc, dr, dc]);
+                }
+            }
+        }
+
+        if (neighbors.length > 0) {
+            const [nr, nc, dr, dc] = neighbors[Math.floor(Math.random() * neighbors.length)];
+            lvl2MazeGrid[r + dr/2][c + dc/2] = 0;
+            lvl2MazeGrid[nr][nc] = 0;
+            stack.push([nr, nc]);
+        } else {
+            stack.pop();
+        }
+    }
+
+    lvl2MazeGrid[8][1] = 0; lvl2MazeGrid[8][2] = 0; lvl2MazeGrid[7][1] = 0;
+
+    let openPaths = [];
+    for (let r = 1; r < lvl2Rows - 1; r++) {
+        for (let c = 1; c < lvl2Cols - 1; c++) {
+            if (lvl2MazeGrid[r][c] === 0 && !(c <= 2 && r >= 7)) {
+                openPaths.push({r, c});
+            }
+        }
+    }
+
+    openPaths.sort(() => Math.random() - 0.5);
+
+    for (let i = 0; i < 3; i++) {
+        if (openPaths.length > 0) {
+            let tile = openPaths.pop();
+            lvl2MazeGrid[tile.r][tile.c] = 2;
+        }
+    }
+
+    for (let i = 0; i < 4; i++) {
+        if (openPaths.length > 0) {
+            let tile = openPaths.pop();
+            lvl2MazeGrid[tile.r][tile.c] = 3;
+        }
+    }
+}
+
+function startLevel2() {
+    // Keep user's chosen essence color from level 1 if available
+    if (selectedColorHex) {
+        lvl2Player.color = selectedColorHex;
+    }
+
+    document.getElementById("introScreen").style.display = "none";
+    document.getElementById("resultsScreen").style.display = "none";
+    
+    generateLvl2Maze();
+    
+    lvl2Player.x = 60;
+    lvl2Player.y = 340;
+    lvl2PinkCollected = 0;
+    lvl2BrownCollected = 0;
+    lvl2TotalDistanceMoved = 0;
+    lvl2LastPlayerX = lvl2Player.x;
+    lvl2LastPlayerY = lvl2Player.y;
+    
+    lvl2StartTime = performance.now();
+    lvl2GameActive = true;
+    
+    lvl2GameLoop();
+}
+
+function checkLvl2Collision(nx, ny) {
+    const checkPoints = [
+        {x: nx - lvl2Player.radius, y: ny - lvl2Player.radius},
+        {x: nx + lvl2Player.radius, y: ny - lvl2Player.radius},
+        {x: nx - lvl2Player.radius, y: ny + lvl2Player.radius},
+        {x: nx + lvl2Player.radius, y: ny + lvl2Player.radius}
+    ];
+    
+    for (let p of checkPoints) {
+        const gridX = Math.floor(p.x / lvl2TileSize);
+        const gridY = Math.floor(p.y / lvl2TileSize);
+        if (gridX < 0 || gridX >= lvl2Cols || gridY < 0 || gridY >= lvl2Rows) return true;
+        if (lvl2MazeGrid[gridY][gridX] === 1) return true;
+    }
+    return false;
+}
+
+function updateLvl2PlayerLogic() {
+    let nextX = lvl2Player.x;
+    let nextY = lvl2Player.y;
+    
+    if (keys["arrowup"] || keys["w"]) nextY -= lvl2Player.speed;
+    if (keys["arrowdown"] || keys["s"]) nextY += lvl2Player.speed;
+    if (!checkLvl2Collision(lvl2Player.x, nextY)) lvl2Player.y = nextY;
+    
+    if (keys["arrowleft"] || keys["a"]) nextX -= lvl2Player.speed;
+    if (keys["arrowright"] || keys["d"]) nextX += lvl2Player.speed;
+    if (!checkLvl2Collision(nextX, lvl2Player.y)) lvl2Player.x = nextX;
+    
+    let dist = Math.sqrt(Math.pow(lvl2Player.x - lvl2LastPlayerX, 2) + Math.pow(lvl2Player.y - lvl2LastPlayerY, 2));
+    lvl2TotalDistanceMoved += dist;
+    lvl2LastPlayerX = lvl2Player.x;
+    lvl2LastPlayerY = lvl2Player.y;
+    
+    const currentGridX = Math.floor(lvl2Player.x / lvl2TileSize);
+    const currentGridY = Math.floor(lvl2Player.y / lvl2TileSize);
+    
+    if (currentGridY >= 0 && currentGridY < lvl2Rows && currentGridX >= 0 && currentGridX < lvl2Cols) {
+        const currentTile = lvl2MazeGrid[currentGridY][currentGridX];
+        if (currentTile === 2) { 
+            lvl2PinkCollected++;
+            lvl2MazeGrid[currentGridY][currentGridX] = 0; 
+        } else if (currentTile === 3) { 
+            lvl2BrownCollected++;
+            lvl2MazeGrid[currentGridY][currentGridX] = 0; 
+        }
+    }
+}
+
+function drawLvl2Screen() {
+    if (!lvl2Ctx) return;
+    
+    lvl2Ctx.clearRect(0, 0, lvl2Canvas.width, lvl2Canvas.height);
+    
+    for (let r = 0; r < lvl2Rows; r++) {
+        for (let c = 0; c < lvl2Cols; c++) {
+            let tx = c * lvl2TileSize;
+            let ty = r * lvl2TileSize;
+            
+            if (lvl2MazeGrid[r][c] === 1) {
+                lvl2Ctx.fillStyle = "#1e1e24";
+                lvl2Ctx.fillRect(tx, ty, lvl2TileSize, lvl2TileSize);
+                lvl2Ctx.strokeStyle = "#2d2d35";
+                lvl2Ctx.strokeRect(tx, ty, lvl2TileSize, lvl2TileSize);
+            } else if (lvl2MazeGrid[r][c] === 2) {
+                lvl2Ctx.fillStyle = "#ff007f";
+                lvl2Ctx.fillRect(tx, ty, lvl2TileSize, lvl2TileSize);
+                lvl2Ctx.fillStyle = "#000000";
+                lvl2Ctx.beginPath();
+                lvl2Ctx.moveTo(tx + lvl2TileSize/2, ty + 8);
+                lvl2Ctx.lineTo(tx + 8, ty + lvl2TileSize - 8);
+                lvl2Ctx.lineTo(tx + lvl2TileSize - 8, ty + lvl2TileSize - 8);
+                lvl2Ctx.closePath();
+                lvl2Ctx.fill();
+            } else if (lvl2MazeGrid[r][c] === 3) {
+                lvl2Ctx.fillStyle = "#4a2c11";
+                lvl2Ctx.fillRect(tx, ty, lvl2TileSize, lvl2TileSize);
+                lvl2Ctx.strokeStyle = "#8c5828";
+                lvl2Ctx.lineWidth = 3;
+                lvl2Ctx.beginPath();
+                lvl2Ctx.moveTo(tx + 5, ty + 15);
+                lvl2Ctx.bezierCurveTo(tx + 15, ty + 5, tx + 25, ty + 25, tx + 35, ty + 15);
+                lvl2Ctx.moveTo(tx + 5, ty + 25);
+                lvl2Ctx.bezierCurveTo(tx + 15, ty + 15, tx + 25, ty + 35, tx + 35, ty + 25);
+                lvl2Ctx.stroke();
+            }
+        }
+    }
+    
+    lvl2Ctx.beginPath();
+    lvl2Ctx.arc(lvl2Player.x, lvl2Player.y, lvl2Player.radius, 0, Math.PI * 2);
+    lvl2Ctx.fillStyle = lvl2Player.color;
+    lvl2Ctx.shadowBlur = 12;
+    lvl2Ctx.shadowColor = lvl2Player.color;
+    lvl2Ctx.fill();
+    lvl2Ctx.shadowBlur = 0; 
+}
+
+function updateLvl2HUD(liveBaseline, currentMod) {
+    document.getElementById("timerValue").innerText = Math.max(0, lvl2TimeRemaining).toFixed(1);
+    
+    let pacingString = "Low (Calm)";
+    if (liveBaseline > 85) pacingString = "High (Aggressive)";
+    else if (liveBaseline > 72) pacingString = "Medium (Active)";
+    
+    document.getElementById("pacingValue").innerText = `${pacingString} [${liveBaseline.toFixed(1)} Hz]`;
+    
+    let modSign = currentMod >= 0 ? "+" : "";
+    document.getElementById("modValue").innerText = `${modSign}${currentMod.toFixed(1)} Hz`;
+}
+
+function calculateLvl2Metrics() {
+    let movementRatio = Math.min(1, lvl2TotalDistanceMoved / 9000);
+    let baselineHz = 60.0 + (movementRatio * 40.0);
+    let modifierHz = (lvl2PinkCollected * 5.0) - (lvl2BrownCollected * 5.0);
+    let finalHz = baselineHz + modifierHz;
+    
+    if (finalHz < 40) finalHz = 40;
+    if (finalHz > 120) finalHz = 120;
+    
+    return { baselineHz, modifierHz, finalHz };
+}
+
+function handleLvl2Complete() {
+    lvl2GameActive = false;
+    cancelAnimationFrame(lvl2AnimationFrameId);
+    
+    const scores = calculateLvl2Metrics();
+    window.playerStats.finalHz = scores.finalHz; // Save to global stats
+    
+    document.getElementById("hzDisplay").innerText = scores.finalHz.toFixed(2) + " Hz";
+    document.getElementById("mathDisplay").innerHTML = `<strong>CALIBRATION SUMMARY:</strong><br> Baseline Pacing Signature: ${scores.baselineHz.toFixed(1)} Hz<br> Pink Node Modifier (${lvl2PinkCollected} collected): +${(lvl2PinkCollected * 5.0).toFixed(1)} Hz<br> Brown Node Modifier (${lvl2BrownCollected} collected): -${(lvl2BrownCollected * 5.0).toFixed(1)} Hz<br> <span style="color:#00ffcc;">Formula: ${scores.baselineHz.toFixed(1)} + ${(lvl2PinkCollected * 5.0).toFixed(1)} - ${(lvl2BrownCollected * 5.0).toFixed(1)} = ${scores.finalHz.toFixed(2)} Hz</span>`;
+    
+    document.getElementById("resultsScreen").style.display = "flex";
+}
+
+function lvl2GameLoop() {
+    if (!lvl2GameActive) return;
+    
+    let elapsed = (performance.now() - lvl2StartTime) / 1000;
+    lvl2TimeRemaining = lvl2Duration - elapsed;
+    
+    if (lvl2TimeRemaining <= 0) {
+        handleLvl2Complete();
+        return;
+    }
+    
+    updateLvl2PlayerLogic();
+    drawLvl2Screen();
+    
+    const currentLiveStats = calculateLvl2Metrics();
+    updateLvl2HUD(currentLiveStats.baselineHz, currentLiveStats.modifierHz);
+    
+    lvl2AnimationFrameId = requestAnimationFrame(lvl2GameLoop);
+}
+
+function resetToLevel2Intro() {
+    document.getElementById("resultsScreen").style.display = "none";
+    document.getElementById("introScreen").style.display = "flex";
+    
+    if (lvl2Ctx) lvl2Ctx.clearRect(0, 0, lvl2Canvas.width, lvl2Canvas.height);
+    
+    document.getElementById("timerValue").innerText = "60.0";
+    document.getElementById("pacingValue").innerText = "Calculating...";
+    document.getElementById("modValue").innerText = "0.0 Hz";
+}
