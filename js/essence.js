@@ -3,7 +3,7 @@ const loreData = [
     `Agni embodies an intense, consuming passion that ignites creativity and drives ambition forward with unstoppable momentum. This fierce energy easily spills over into a volatile, explosive anger when restricted, burning through boundaries with sharp impatience. Yet, beneath the aggression lies a warm, radiant joy that offers comfort, protection, and deep inspiration to those nearby. It also carries a sharp, critical judgment, fiercely cutting away falsehoods to seek absolute purity and truth. Finally, it harbors a restless anxiety, a constant, flickering fear of depletion that forces it to always seek new fuel to sustain its brilliant light.`,
     `Jala flows with profound, boundless empathy, effortlessly absorbing the unspoken emotions and hidden pains of the world. It carries a heavy, melancholic sadness, gently cradling grief like a deep, still ocean hidden away from the sun. This sorrow is balanced by a serene, tranquil peace, providing a soothing calm that heals friction and restores harmony. When disrupted, it reveals a fluid, shapeshifting insecurity, constantly adapting its form out of a deep fear of rejection or abandonment. Underneath its quiet surface, it holds a fiercely loyal, enduring love that binds relationships together with unbreakable emotional ties.`,
     `Prithvi stands as a pillar of unwavering, stubborn confidence, rooted deeply in its own unshakeable worth and massive strength. It radiates a profound, nurturing safety, offering a dependable sanctuary where others feel completely protected and grounded. This stability can harden into a rigid, heavy dullness, resisting change out of a cautious fear of the unknown. However, it experiences a quiet, deeply satisfying contentment, finding immense joy in simple, physical presence and the natural rhythm of time. It also harbors a silent, protective possessiveness, fiercely guarding its domain and the people it holds dear.`,
-    `Vayu thrives on an ecstatic, untamed excitement, constantly seeking the thrill of new ideas, distant horizons, and absolute freedom. It suffers from a detached, scattered loneliness, drifting far above the world without ever feeling truly connected to a single place. its fast, agile nature brings a lighter, whimsical curiosity that playfully explores concepts and binds people together through communication. Yet, this quickness can instantly collapse into a chaotic, overwhelming panic when it feels trapped or compressed. Ultimately, it is driven by a hopeful, soaring optimism, always looking forward to the next breeze of change.`
+    `Vayu thrives on an ecstatic, untamed excitement, constantly seeking the thrill of new ideas, distant horizons, and absolute freedom. It suffers from a detached, scattered loneliness, drifting far above the world without ever feeling truly connected to a single place. Its fast, agile nature brings a lighter, whimsical curiosity that playfully explores concepts and binds people together through communication. Yet, this quickness can instantly collapse into a chaotic, overwhelming panic when it feels trapped or compressed. Ultimately, it is driven by a hopeful, soaring optimism, always looking forward to the next breeze of change.`
 ];
 
 const circleConfigs = [
@@ -19,11 +19,20 @@ let currentMazeGrid = null;
 let chosenEntranceIndex = null;
 let playerX = 0;
 let playerY = 0;
-let playerRadius = 8;
+let playerRadius = 7;
 let playerActive = false;
 let keys = {};
 let ringWidth = 0;
 const ringsCount = 10;
+
+// Game State & Mechanics Variables
+let gameStarted = false;
+let gameTimer = 300; // 5 minutes in seconds
+let timerInterval = null;
+let orbsCollectedCount = 0;
+let glowTimeRemaining = 10; // Starts at 10 seconds
+let activeOrbs = [];
+let hasEnteredMaze = false;
 
 function startGame() {
     const titleContainer = document.getElementById('title-container');
@@ -166,12 +175,12 @@ function closeMazeInstructions() {
         // Position player's colored circle right outside the entrance
         const playerCircle = document.getElementById('player-circle');
         playerCircle.style.backgroundColor = selectedColorHex;
-        playerCircle.style.boxShadow = `0 0 20px ${selectedColorHex}`;
+        playerCircle.style.boxShadow = `0 0 25px ${selectedColorHex}`;
         playerCircle.style.left = `${playerX}px`;
         playerCircle.style.top = `${playerY}px`;
         playerCircle.style.opacity = '1';
 
-        // Enable movement listeners
+        // Enable movement listeners for entry step
         playerActive = true;
     }, 1000);
 }
@@ -298,8 +307,11 @@ function drawPacManCircularMaze(showEntrance) {
     const grid = currentMazeGrid;
 
     const outerRingIdx = ringsCount - 1;
-    if (showEntrance && chosenEntranceIndex !== null) {
+    if (showEntrance && chosenEntranceIndex !== null && !hasEnteredMaze) {
         grid[outerRingIdx][chosenEntranceIndex].walls.outward = false;
+    } else if (hasEnteredMaze) {
+        // Entrance is closed
+        grid[outerRingIdx][chosenEntranceIndex].walls.outward = true;
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -321,7 +333,7 @@ function drawPacManCircularMaze(showEntrance) {
             let startAngle = (t / cell.totalThetas) * 2 * Math.PI;
             let endAngle = ((t + 1) / cell.totalThetas) * 2 * Math.PI;
 
-            if (showEntrance && r === outerRingIdx && t === chosenEntranceIndex) {
+            if (showEntrance && !hasEnteredMaze && r === outerRingIdx && t === chosenEntranceIndex) {
                 let midAngle = (startAngle + endAngle) / 2;
                 let spawnRadius = outerRadius + 18;
                 playerX = cx + spawnRadius * Math.cos(midAngle);
@@ -360,6 +372,135 @@ function grid0_0_inward_fix(grid) {
     }
 }
 
+// Trigger 4 Simultaneous Events upon entering the maze
+function triggerMazeEntry() {
+    hasEnteredMaze = true;
+    
+    // 1. Close entrance visually by redrawing maze
+    drawPacManCircularMaze(true);
+
+    // 2. Spawn first 5 tiny white orbs
+    spawnInitialOrbs();
+
+    // 3. Start 5 min countdown timer & show UI
+    document.getElementById('maze-ui').style.display = 'block';
+    startMainTimer();
+
+    // 4. Start glow countdown timer (10 seconds)
+    startGleamTimer();
+}
+
+// Main 5-minute timer
+function startMainTimer() {
+    timerInterval = setInterval(() => {
+        gameTimer--;
+        let mins = Math.floor(gameTimer / 60);
+        let secs = gameTimer % 60;
+        document.getElementById('timer-display').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+        if (gameTimer <= 0) {
+            clearInterval(timerInterval);
+            alert("Time has run out! Your Essence faded.");
+            location.reload();
+        }
+    }, 1000);
+}
+
+// Glow countdown & fading mechanic
+function startGleamTimer() {
+    let glowInterval = setInterval(() => {
+        if (!playerActive) return;
+        
+        glowTimeRemaining--;
+
+        // Visual fade logic when glow drops to 5 seconds or below
+        let playerCircle = document.getElementById('player-circle');
+        if (glowTimeRemaining <= 5 && glowTimeRemaining > 0) {
+            let opacityFactor = glowTimeRemaining / 5; // Scales from 1 down to 0.2
+            playerCircle.style.boxShadow = `0 0 ${Math.floor(25 * opacityFactor)}px ${selectedColorHex}`;
+            playerCircle.style.opacity = opacityFactor;
+        } else if (glowTimeRemaining <= 0) {
+            clearInterval(glowInterval);
+            alert("Your glow has burned out! You must restart.");
+            location.reload();
+        }
+    }, 1000);
+}
+
+// Orb Management & Spawning Logic
+function spawnInitialOrbs() {
+    for (let i = 0; i < 5; i++) {
+        spawnSingleOrb();
+    }
+}
+
+function getRandomCellCoordinates() {
+    const canvas = document.getElementById('mazeCanvas');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    
+    // Pick random ring (from 1 to 9) and random angle
+    let r = Math.floor(Math.random() * (ringsCount - 1)) + 1;
+    let ringCells = currentMazeGrid[r];
+    let t = Math.floor(Math.random() * ringCells.length);
+    let startAngle = (t / ringCells[0].totalThetas) * 2 * Math.PI;
+    let endAngle = ((t + 1) / ringCells[0].totalThetas) * 2 * Math.PI;
+    let midAngle = (startAngle + endAngle) / 2;
+    let midRadius = (r + 0.5) * ringWidth;
+
+    let ox = cx + midRadius * Math.cos(midAngle);
+    let oy = cy + midRadius * Math.sin(midAngle);
+
+    // Ensure it's not within 10px of player's initial position
+    let dx = ox - playerX;
+    let dy = oy - playerY;
+    if (Math.sqrt(dx*dx + dy*dy) < 15) {
+        return getRandomCellCoordinates(); // Retry if too close
+    }
+
+    return { x: ox, y: oy };
+}
+
+function spawnSingleOrb() {
+    let coords = getRandomCellCoordinates();
+    let orbDiv = document.createElement('div');
+    orbDiv.className = 'tiny-orb';
+    orbDiv.style.left = `${coords.x}px`;
+    orbDiv.style.top = `${coords.y}px`;
+    
+    document.getElementById('orbs-layer').appendChild(orbDiv);
+    setTimeout(() => { orbDiv.style.opacity = '1'; }, 50);
+
+    activeOrbs.push({ element: orbDiv, x: coords.x, y: coords.y });
+}
+
+function checkOrbCollection() {
+    for (let i = activeOrbs.length - 1; i >= 0; i--) {
+        let orb = activeOrbs[i];
+        let dx = playerX - orb.x;
+        let dy = playerY - orb.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < playerRadius + 6) {
+            // Collected!
+            orb.element.remove();
+            activeOrbs.splice(i, 1);
+
+            orbsCollectedCount++;
+            document.getElementById('orb-counter').innerText = orbsCollectedCount;
+
+            // Add 5 seconds of glow (max visual stack cap rules)
+            glowTimeRemaining = Math.min(glowTimeRemaining + 5, 25);
+            let playerCircle = document.getElementById('player-circle');
+            playerCircle.style.opacity = '1';
+            playerCircle.style.boxShadow = `0 0 25px ${selectedColorHex}`;
+
+            // Spawn replacement orb
+            spawnSingleOrb();
+        }
+    }
+}
+
 // Precise Wall Collision Detection for Circular Maze
 function checkCollision(nx, ny) {
     const canvas = document.getElementById('mazeCanvas');
@@ -373,11 +514,10 @@ function checkCollision(nx, ny) {
     let angle = Math.atan2(dy, dx);
     if (angle < 0) angle += 2 * Math.PI;
 
-    // Check outer boundary and center bounds
     const outerRingIdx = ringsCount - 1;
     let outerCellCount = currentMazeGrid[outerRingIdx].length;
     let outerThetaIdx = Math.floor((angle / (2 * Math.PI)) * outerCellCount);
-    let isOuterEntrance = (outerRingIdx === outerRingIdx && outerThetaIdx === chosenEntranceIndex && !currentMazeGrid[outerRingIdx][outerThetaIdx].walls.outward);
+    let isOuterEntrance = (!hasEnteredMaze && outerThetaIdx === chosenEntranceIndex && !currentMazeGrid[outerRingIdx][outerThetaIdx].walls.outward);
 
     if (distFromCenter > maxRadius - playerRadius) {
         if (!isOuterEntrance || distFromCenter > maxRadius + 5) {
@@ -388,7 +528,6 @@ function checkCollision(nx, ny) {
         return true;
     }
 
-    // Check specific cell walls based on player position
     let r = Math.floor(distFromCenter / ringWidth);
     if (r < 0) r = 0;
     if (r >= ringsCount) r = ringsCount - 1;
@@ -405,11 +544,9 @@ function checkCollision(nx, ny) {
     let innerR = r * ringWidth;
     let outerR = (r + 1) * ringWidth;
 
-    // Inward/Outward wall collision
     if (cell.walls.inward && distFromCenter - playerRadius < innerR && r > 0) return true;
     if (cell.walls.outward && distFromCenter + playerRadius > outerR && r < ringsCount - 1) return true;
 
-    // Clockwise/Counter-clockwise radial wall collision (approximate check near cell boundaries)
     let cellMidAngle = (startAngle + endAngle) / 2;
     let angleDiff = Math.abs(angle - cellMidAngle);
     if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
@@ -423,7 +560,7 @@ function checkCollision(nx, ny) {
     return false;
 }
 
-// Game Loop for Player Movement with Collision
+// Game Loop for Player Movement with Entry Trigger & Collision
 function gameLoop() {
     if (playerActive) {
         let speed = 2;
@@ -439,12 +576,39 @@ function gameLoop() {
             let nextX = playerX + dx;
             let nextY = playerY + dy;
 
-            // Axis-separated collision sliding mechanism
-            if (!checkCollision(nextX, playerY)) {
-                playerX = nextX;
-            }
-            if (!checkCollision(playerX, nextY)) {
-                playerY = nextY;
+            // Check if stepping across the entrance threshold for the very first time
+            if (!hasEnteredMaze) {
+                const canvas = document.getElementById('mazeCanvas');
+                let distToCenter = Math.sqrt((nextX - canvas.width/2)**2 + (nextY - canvas.height/2)**2);
+                let maxRadius = ringsCount * ringWidth;
+                
+                // If moving inward past outer perimeter boundary line
+                if (distToCenter < maxRadius - 2) {
+                    playerX = nextX;
+                    playerY = nextY;
+                    triggerMazeEntry();
+                } else {
+                    // Normal entry slide constraint
+                    if (!checkCollision(nextX, playerY)) playerX = nextX;
+                    if (!checkCollision(playerX, nextY)) playerY = nextY;
+                }
+            } else {
+                // Standard active gameplay collision sliding
+                if (!checkCollision(nextX, playerY)) playerX = nextX;
+                if (!checkCollision(playerX, nextY)) playerY = nextY;
+
+                // Check orb collection
+                checkOrbCollection();
+
+                // Check center reach win condition
+                const canvas = document.getElementById('mazeCanvas');
+                let distToCenter = Math.sqrt((playerX - canvas.width/2)**2 + (playerY - canvas.height/2)**2);
+                if (distToCenter < ringWidth) {
+                    playerActive = false;
+                    clearInterval(timerInterval);
+                    alert(`Maze Stabilized! Orbs Collected: ${orbsCollectedCount}`);
+                    location.reload();
+                }
             }
 
             const playerCircle = document.getElementById('player-circle');
