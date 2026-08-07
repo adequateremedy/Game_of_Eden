@@ -17,6 +17,8 @@ let selectedColorHex = '';
 let chosenMazeIndex = 0;
 let currentMazeGrid = null;
 let chosenEntranceIndex = null;
+let playerSpawnX = 0;
+let playerSpawnY = 0;
 
 function startGame() {
     const titleContainer = document.getElementById('title-container');
@@ -155,6 +157,14 @@ function closeMazeInstructions() {
     setTimeout(() => {
         instructionBox.style.display = 'none';
         drawPacManCircularMaze(true);
+
+        // Position and fade in player's colored circle right outside the entrance
+        const playerCircle = document.getElementById('player-circle');
+        playerCircle.style.backgroundColor = selectedColorHex;
+        playerCircle.style.boxShadow = `0 0 15px ${selectedColorHex}`;
+        playerCircle.style.left = `${playerSpawnX}px`;
+        playerCircle.style.top = `${playerSpawnY}px`;
+        playerCircle.style.opacity = '1';
     }, 1000);
 }
 
@@ -292,6 +302,14 @@ function drawPacManCircularMaze(showEntrance) {
             let cell = ringCells[t];
             let startAngle = (t / cell.totalThetas) * 2 * Math.PI;
             let endAngle = ((t + 1) / cell.totalThetas) * 2 * Math.PI;
+
+            // Calculate exact pixel position right outside the chosen entrance for the player spawn
+            if (showEntrance && r === outerRingIdx && t === chosenEntranceIndex) {
+                let midAngle = (startAngle + endAngle) / 2;
+                let spawnRadius = outerRadius + 18;
+                playerSpawnX = cx + spawnRadius * Math.cos(midAngle);
+                playerSpawnY = cy + spawnRadius * Math.sin(midAngle);
+            }
 
             if (cell.walls.cw && r > 0) {
                 ctx.beginPath();
