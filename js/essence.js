@@ -502,7 +502,7 @@ function checkOrbCollection() {
     }
 }
 
-// Precise Wall Collision Detection for Circular Maze
+// Precise Wall Collision Detection for Circular Maze with angleDistance correction
 function checkCollision(nx, ny) {
     const canvas = document.getElementById('mazeCanvas');
     const cx = canvas.width / 2;
@@ -548,15 +548,26 @@ function checkCollision(nx, ny) {
     if (cell.walls.inward && distFromCenter - playerRadius < innerR && r > 0) return true;
     if (cell.walls.outward && distFromCenter + playerRadius > outerR && r < ringsCount - 1) return true;
 
-    let cellMidAngle = (startAngle + endAngle) / 2;
-    let angleDiff = Math.abs(angle - cellMidAngle);
-    if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
-
-    let arcLen = distFromCenter * angleDiff;
-    if (arcLen < playerRadius + 2) {
-        if (cell.walls.cw && angle > cellMidAngle) return true;
-        if (cell.walls.ccw && angle < cellMidAngle) return true;
+    // Corrected angle distance check against actual cell boundary walls (cw and ccw)
+    function normalizeAngle(a) {
+        while (a < 0) a += 2 * Math.PI;
+        while (a >= 2 * Math.PI) a -= 2 * Math.PI;
+        return a;
     }
+
+    let angleToStart = Math.abs(normalizeAngle(angle - startAngle));
+    if (angleToStart > Math.PI) angleToStart = 2 * Math.PI - angleToStart;
+    let arcDistStart = distFromCenter * angleToStart;
+
+    let angleToEnd = Math.abs(normalizeAngle(angle - endAngle));
+    if (angleToEnd > Math.PI) angleToEnd = 2 * Math.PI - angleToEnd;
+    let arcDistEnd = distFromCenter * angleToEnd;
+
+    // Buffer tolerance for smooth sliding
+    let wallBuffer = playerRadius + 1;
+
+    if (cell.walls.ccw && arcDistStart < wallBuffer) return true;
+    if (cell.walls.cw && arcDistEnd < wallBuffer) return true;
 
     return false;
 }
@@ -577,14 +588,14 @@ function gameLoop() {
             let nextX = playerX + dx;
             let nextY = playerY + dy;
 
-            // Check if stepping across the entrance threshold for the very first time
+            // Check if stepping across the entrance threshold for the very first time (fully inside before closing)
             if (!hasEnteredMaze) {
                 const canvas = document.getElementById('mazeCanvas');
                 let distToCenter = Math.sqrt((nextX - canvas.width/2)**2 + (nextY - canvas.height/2)**2);
                 let maxRadius = ringsCount * ringWidth;
                 
-                // If moving inward past outer perimeter boundary line fully
-                if (distToCenter < maxRadius - playerRadius - 2) {
+                // If moving inward past outer perimeter boundary line fully, taking player radius into account
+                if (distToCenter < maxRadius - playerRadius - 4) {
                     playerX = nextX;
                     playerY = nextY;
                     triggerMazeEntry();
