@@ -235,28 +235,40 @@ function generateAndDrawPacManCircularMaze() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. SUBTLE GLOW AROUND THE CENTER HUB ONLY (Hollow center core with player's color glow ring)
-    ctx.save();
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = selectedColorHex;
-    ctx.strokeStyle = selectedColorHex;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, ringWidth, 0, 2 * Math.PI);
-    ctx.stroke();
-    ctx.restore();
-
-    // 2. DRAW MAZE WALLS
-    ctx.strokeStyle = '#b87333'; 
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.shadowBlur = 4;
-    ctx.shadowColor = '#b87333';
-
+    // 1. RENDER MAZE WALLS WITH A SOFT GLOWING PLAYER-COLORED OUTER BOUNDARY RING
     for (let r = 0; r < ringsCount; r++) {
         let ringCells = grid[r];
         let innerRadius = r * ringWidth;
         let outerRadius = (r + 1) * ringWidth;
+
+        // Apply soft glow specifically to the outermost perimeter border ring using selected player color
+        if (r === ringsCount - 1) {
+            ctx.save();
+            ctx.strokeStyle = selectedColorHex;
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = selectedColorHex;
+            
+            for (let t = 0; t < ringCells.length; t++) {
+                let cell = ringCells[t];
+                let startAngle = (t / cell.totalThetas) * 2 * Math.PI;
+                let endAngle = ((t + 1) / cell.totalThetas) * 2 * Math.PI;
+
+                if (cell.walls.outward) {
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, outerRadius, startAngle, endAngle);
+                    ctx.stroke();
+                }
+            }
+            ctx.restore();
+        }
+
+        // Standard copper/gold walls for the interior labyrinth structure
+        ctx.strokeStyle = '#b87333'; 
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = '#b87333';
 
         for (let t = 0; t < ringCells.length; t++) {
             let cell = ringCells[t];
@@ -273,12 +285,6 @@ function generateAndDrawPacManCircularMaze() {
             if (cell.walls.inward && r > 1) {
                 ctx.beginPath();
                 ctx.arc(cx, cy, innerRadius, startAngle, endAngle);
-                ctx.stroke();
-            }
-            
-            if (cell.walls.outward && r === ringsCount - 1) {
-                ctx.beginPath();
-                ctx.arc(cx, cy, outerRadius, startAngle, endAngle);
                 ctx.stroke();
             }
         }
