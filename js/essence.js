@@ -19,8 +19,10 @@ const spellRegistry = {
 };
 
 // ==========================================
-// AUDIO TRANSITION UTILITY
+// ROBUST AUDIO TRANSITION UTILITY
 // ==========================================
+let globalAudioFadeInterval = null;
+
 function fadeOutAudio(callback) {
     const bgMusic = document.getElementById('bg-music');
     if (!bgMusic) {
@@ -28,29 +30,61 @@ function fadeOutAudio(callback) {
         return;
     }
 
-    const fadeSteps = 30;
-    const fadeIntervalTime = 30; 
-    const volumeStep = bgMusic.volume / fadeSteps;
+    // Immediately terminate any existing intervals to prevent conflicts
+    if (globalAudioFadeInterval) {
+        clearInterval(globalAudioFadeInterval);
+        globalAudioFadeInterval = null;
+    }
 
-    let fadeAudio = setInterval(() => {
-        if (bgMusic.volume - volumeStep > 0.01) {
-            bgMusic.volume -= volumeStep;
-        } else {
-            clearInterval(fadeAudio);
+    let currentVol = bgMusic.volume;
+    const fadeSteps = 20;
+    const volStep = currentVol / fadeSteps;
+
+    // Safety net in case volume is already 0
+    if (currentVol <= 0) {
+        bgMusic.pause();
+        if (callback) callback();
+        return;
+    }
+
+    globalAudioFadeInterval = setInterval(() => {
+        currentVol -= volStep;
+        
+        if (currentVol <= 0.05) {
+            clearInterval(globalAudioFadeInterval);
+            globalAudioFadeInterval = null;
             bgMusic.volume = 0;
             bgMusic.pause();
             if (callback) callback();
+        } else {
+            bgMusic.volume = currentVol;
         }
-    }, fadeIntervalTime);
+    }, 40);
 }
 
 function playAudio(src) {
     const bgMusic = document.getElementById('bg-music');
     if (!bgMusic) return;
+
+    // Aggressively kill any running fades so they don't drag the new song's volume down
+    if (globalAudioFadeInterval) {
+        clearInterval(globalAudioFadeInterval);
+        globalAudioFadeInterval = null;
+    }
+
+    bgMusic.pause();
     bgMusic.src = src;
-    bgMusic.load();
+    bgMusic.loop = true;
     bgMusic.volume = 1;
-    bgMusic.play().catch(e => console.log("Audio play prevented:", e));
+    
+    // Explicit load and play
+    bgMusic.load();
+    let playPromise = bgMusic.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(error => {
+            console.log("Audio play error:", error);
+        });
+    }
 }
 
 // ==========================================
@@ -106,8 +140,8 @@ function startGame() {
     const startBtn = document.getElementById('start-btn');
     const popupBox = document.getElementById('popup-box');
     
-    // Play Level 1 Music
-    playAudio('assets/That%20Which%20Anchors.mp3');
+    // Play Level 1 Music directly using safe path names
+    playAudio('assets/That Which Anchors.mp3');
 
     titleContainer.style.transition = 'opacity 0.5s ease';
     startBtn.style.transition = 'opacity 0.5s ease';
@@ -689,7 +723,7 @@ function transitionToLevel2() {
     
     for (let key in keys) { keys[key] = false; }
     
-    // Fade out Level 1 Audio
+    // Fade out Level 1 Audio completely
     fadeOutAudio();
 
     const level1Container = document.getElementById('level1-container');
@@ -813,8 +847,8 @@ function startLevel2() {
         lvl2Player.color = selectedColorHex;
     }
     
-    // Play Level 2 Music
-    playAudio('assets/Merciless%20Engines.mp3');
+    // Play Level 2 Music securely
+    playAudio('assets/Merciless Engines.mp3');
 
     document.getElementById("introScreen").style.display = "none";
     document.getElementById("resultsScreen").style.display = "none";
@@ -1000,7 +1034,7 @@ function lvl2GameLoop() {
 function transitionToLevel3() {
     for (let key in keys) { keys[key] = false; }
     
-    // Fade out Level 2 Audio
+    // Fade out Level 2 Audio completely
     fadeOutAudio();
 
     const level2Container = document.getElementById('level2-container');
@@ -1092,7 +1126,7 @@ function startLevel3() {
         lvl3Player.color = selectedColorHex;
     }
 
-    // Play Level 3 Music
+    // Play Level 3 Music securely
     playAudio('assets/Voltz.mp3');
 
     document.getElementById("lvl3IntroScreen").style.display = "none";
@@ -1382,9 +1416,25 @@ function resetToLevel3Init() {
     document.getElementById("voltageValue").innerText = "0.0 V";
 }
 
-// Final Game Reset Logic
+// ==========================================
+// GUARANTEED REBOOT FALLBACK SYSTEM
+// ==========================================
 function rebootSystem() {
+    let hasReloaded = false;
+    
     fadeOutAudio(() => {
-        location.reload();
+        if (!hasReloaded) {
+            hasReloaded = true;
+            window.location.reload();
+        }
     });
+
+    // Hard fallback: If the audio engine stalls for any reason whatsoever, 
+    // it will forcefully wipe and reload the browser after 1.5 seconds.
+    setTimeout(() => {
+        if (!hasReloaded) {
+            hasReloaded = true;
+            window.location.reload();
+        }
+    }, 1500);
 }
