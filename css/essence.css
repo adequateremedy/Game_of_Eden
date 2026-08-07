@@ -12,6 +12,14 @@ body, html {
     color: #fff;
 }
 
+#level1-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
 #background {
     position: absolute;
     top: 0;
@@ -266,6 +274,7 @@ h1 {
     padding: 5px 15px;
     border: 1px solid #b87333;
     border-radius: 4px;
+    transition: opacity 1.5s ease;
 }
 
 /* Player Circle at Entrance */
@@ -343,6 +352,47 @@ h1 {
     color: #fff;
 }
 
+/* Third Transition Popup Box */
+#transition-popup-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 700px;
+    height: 560px;
+    background: rgba(0, 0, 0, 0.95);
+    border: 4px solid #b87333;
+    box-shadow: 0 0 25px #b87333;
+    z-index: 40;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    box-sizing: border-box;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s ease;
+    overflow: hidden;
+}
+
+#transition-popup-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+}
+
+#transition-popup-box p {
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 30px;
+    white-space: pre-line;
+    color: #fff;
+}
+
+
 @keyframes fadeIn {
     0% { opacity: 0; }
     100% { opacity: 1; }
@@ -362,4 +412,144 @@ h1 {
 @keyframes fadeInButton {
     0% { opacity: 0; }
     100% { opacity: 1; }
+}
+
+
+/* =========================================
+   LEVEL 2 CSS 
+   ========================================= */
+
+#level2-container {
+    background-color: #0b0b0d;
+    color: #ffffff;
+    font-family: 'Courier New', Courier, monospace;
+    display: none; /* Flex when activated */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    overflow: hidden;
+}
+
+#level2-container h1 {
+    margin: 0 0 5px 0;
+    color: #00ffcc;
+    font-size: 26px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    -webkit-text-stroke: 0px;
+}
+
+#hudContainer {
+    width: 800px;
+    display: flex;
+    justify-content: space-between;
+    background: #141419;
+    border: 2px solid #2d2d35;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+    border-radius: 4px;
+    font-size: 15px;
+}
+
+.hud-item {
+    color: #aaa;
+}
+
+.hud-value {
+    color: #00ffcc;
+    font-weight: bold;
+}
+
+#timerValue {
+    color: #ffcc00;
+}
+
+#gameContainer {
+    position: relative;
+    width: 800px;
+    height: 400px;
+}
+
+#gameCanvas {
+    border: 4px solid #2d2d35;
+    background-color: #111115;
+    box-shadow: 0px 0px 25px rgba(0, 255, 204, 0.05);
+}
+
+/* Immersive Screen Overlays */
+.screen-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(11, 11, 13, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+    padding: 40px;
+    border: 4px solid #2d2d35;
+}
+
+#introScreen p {
+    line-height: 1.6;
+    max-width: 600px;
+    color: #ccd;
+    font-size: 16px;
+    margin-bottom: 30px;
+    white-space: normal;
+}
+
+.hz-result {
+    font-size: 54px;
+    color: #00ffcc;
+    margin: 20px 0;
+    font-weight: bold;
+    text-shadow: 0 0 15px rgba(0,255,204,0.4);
+    letter-spacing: 1px;
+}
+
+.math-breakdown {
+    background: #1a1a22;
+    padding: 15px 25px;
+    border-radius: 4px;
+    border: 1px solid #334;
+    margin-bottom: 25px;
+    font-size: 14px;
+    color: #8a8a9a;
+    line-height: 1.5;
+}
+
+#level2-container button {
+    background-color: #00ffcc;
+    color: #0b0b0d;
+    border: none;
+    padding: 12px 28px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0,255,204,0.2);
+    transition: 0.2s ease;
+    text-transform: uppercase;
+}
+
+#level2-container button:hover {
+    background-color: #ffffff;
+    box-shadow: 0 0 15px rgba(255,255,255,0.4);
+    transform: scale(1.03);
 }
