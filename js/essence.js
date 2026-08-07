@@ -15,6 +15,8 @@ const circleConfigs = [
 
 let selectedColorHex = '';
 let chosenMazeIndex = 0;
+let mazeGridData = null;
+let mazeParams = null;
 
 function startGame() {
     const titleContainer = document.getElementById('title-container');
@@ -121,14 +123,28 @@ function finishSelection() {
         const mazeContainer = document.getElementById('maze-container');
         mazeContainer.style.display = 'flex';
         
-        const oldDot = document.getElementById('maze-center-dot');
-        if (oldDot) oldDot.remove();
-
-        generateAndDrawPacManCircularMaze();
+        generateAndDrawPacManCircularMaze(false);
 
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
+
+            // Show instruction box on top of the maze
+            const instructionBox = document.getElementById('maze-instruction-box');
+            instructionBox.style.display = 'flex';
+            setTimeout(() => {
+                instructionBox.style.opacity = '1';
+            }, 50);
         }, 50);
+    }, 1000);
+}
+
+function closeMazeInstructions() {
+    const instructionBox = document.getElementById('maze-instruction-box');
+    instructionBox.style.opacity = '0';
+    setTimeout(() => {
+        instructionBox.style.display = 'none';
+        // Redraw maze with a randomly placed outer entrance now visible
+        generateAndDrawPacManCircularMaze(true);
     }, 1000);
 }
 
@@ -148,7 +164,7 @@ class Cell {
     }
 }
 
-function generateAndDrawPacManCircularMaze() {
+function generateAndDrawPacManCircularMaze(showEntrance) {
     const canvas = document.getElementById('mazeCanvas');
     const ctx = canvas.getContext('2d');
     const cx = canvas.width / 2;
@@ -157,6 +173,13 @@ function generateAndDrawPacManCircularMaze() {
     const ringsCount = 10; 
     const ringWidth = (canvas.width / 2 - 30) / ringsCount; 
     let grid = [];
+
+    // Seeded randomness using chosenMazeIndex combined with time/randomness for unique layout and random entrance spot
+    let seed = (chosenMazeIndex + 1) * 1337 + (showEntrance ? Math.floor(Math.random() * 9999) : 0);
+    function random() {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed / 233280;
+    }
 
     for (let r = 0; r < ringsCount; r++) {
         let cellsInRing;
@@ -210,7 +233,7 @@ function generateAndDrawPacManCircularMaze() {
         let unvisited = current.neighbors.filter(n => !n.cell.visited);
         
         if (unvisited.length > 0) {
-            let nextEdge = unvisited[Math.floor(Math.random() * unvisited.length)];
+            let nextEdge = unvisited[Math.floor(random() * unvisited.length)];
             let nextCell = nextEdge.cell;
             
             current.walls[nextEdge.wall] = false;
@@ -230,11 +253,18 @@ function generateAndDrawPacManCircularMaze() {
     grid[0][0].walls.ccw = false;
     grid0_0_inward_fix(grid);
 
-    // ENTRANCE REMOVED: Keep all outer boundary walls intact so there is no gap/entrance anywhere on the maze perimeter.
+    // Handle outer entrance based on instruction state
+    const outerRingIdx = ringsCount - 1;
+    let outerCellsCount = grid[outerRingIdx].length;
+    let randomEntranceIndex = Math.floor(random() * outerCellsCount);
+
+    if (showEntrance) {
+        grid[outerRingIdx][randomEntranceIndex].walls.outward = false;
+    }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // RENDER ENTIRE MAZE STRUCTURE FULLY COLORED AND GLOWING IN THE PLAYER'S CHOSEN COLOR WITH NO ENTRANCE GAP
+    // RENDER ENTIRE MAZE STRUCTURE WITH FULL GLOW IN SELECTED PLAYER COLOR
     ctx.save();
     ctx.strokeStyle = selectedColorHex; 
     ctx.lineWidth = 2.5;
