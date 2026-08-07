@@ -572,7 +572,7 @@ function checkCollision(nx, ny) {
     return false;
 }
 
-// Game Loop for Player Movement with Polar Coordinates & Collision Sliding
+// Game Loop for Player Movement with Polar Coordinates & Collision Sliding (Inverted Controls)
 function gameLoop() {
     if (playerActive) {
         let radialSpeed = 2; // pixels for inward/outward
@@ -581,10 +581,11 @@ function gameLoop() {
         let dr = 0;
         let dArc = 0;
 
-        if (keys['ArrowUp'] || keys['w'] || keys['W']) dr -= radialSpeed;
-        if (keys['ArrowDown'] || keys['s'] || keys['S']) dr += radialSpeed;
-        if (keys['ArrowLeft'] || keys['a'] || keys['A']) dArc -= angularPixelSpeed;
-        if (keys['ArrowRight'] || keys['d'] || keys['D']) dArc += angularPixelSpeed;
+        // Inverted axes
+        if (keys['ArrowUp'] || keys['w'] || keys['W']) dr += radialSpeed;
+        if (keys['ArrowDown'] || keys['s'] || keys['S']) dr -= radialSpeed;
+        if (keys['ArrowLeft'] || keys['a'] || keys['A']) dArc += angularPixelSpeed;
+        if (keys['ArrowRight'] || keys['d'] || keys['D']) dArc -= angularPixelSpeed;
 
         if (dr !== 0 || dArc !== 0) {
             const canvas = document.getElementById('mazeCanvas');
