@@ -15,8 +15,6 @@ const circleConfigs = [
 
 let selectedColorHex = '';
 let chosenMazeIndex = 0;
-let mazeGridData = null;
-let mazeParams = null;
 
 function startGame() {
     const titleContainer = document.getElementById('title-container');
@@ -128,9 +126,10 @@ function finishSelection() {
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
 
-            // Show instruction box on top of the maze
+            // Show the second instruction popup box on top
             const instructionBox = document.getElementById('maze-instruction-box');
             instructionBox.style.display = 'flex';
+            instructionBox.style.pointerEvents = 'auto';
             setTimeout(() => {
                 instructionBox.style.opacity = '1';
             }, 50);
@@ -141,6 +140,7 @@ function finishSelection() {
 function closeMazeInstructions() {
     const instructionBox = document.getElementById('maze-instruction-box');
     instructionBox.style.opacity = '0';
+    instructionBox.style.pointerEvents = 'none';
     setTimeout(() => {
         instructionBox.style.display = 'none';
         // Redraw maze with a randomly placed outer entrance now visible
@@ -174,7 +174,7 @@ function generateAndDrawPacManCircularMaze(showEntrance) {
     const ringWidth = (canvas.width / 2 - 30) / ringsCount; 
     let grid = [];
 
-    // Seeded randomness using chosenMazeIndex combined with time/randomness for unique layout and random entrance spot
+    // Seeded randomness combining chosenMazeIndex and dynamic randomness for random entrance spot
     let seed = (chosenMazeIndex + 1) * 1337 + (showEntrance ? Math.floor(Math.random() * 9999) : 0);
     function random() {
         seed = (seed * 9301 + 49297) % 233280;
@@ -253,7 +253,7 @@ function generateAndDrawPacManCircularMaze(showEntrance) {
     grid[0][0].walls.ccw = false;
     grid0_0_inward_fix(grid);
 
-    // Handle outer entrance based on instruction state
+    // Random entrance on the outer boundary ring if showEntrance is true
     const outerRingIdx = ringsCount - 1;
     let outerCellsCount = grid[outerRingIdx].length;
     let randomEntranceIndex = Math.floor(random() * outerCellsCount);
@@ -264,7 +264,7 @@ function generateAndDrawPacManCircularMaze(showEntrance) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // RENDER ENTIRE MAZE STRUCTURE WITH FULL GLOW IN SELECTED PLAYER COLOR
+    // RENDER ENTIRE MAZE STRUCTURE FULLY COLORED AND GLOWING IN THE PLAYER'S CHOSEN COLOR
     ctx.save();
     ctx.strokeStyle = selectedColorHex; 
     ctx.lineWidth = 2.5;
