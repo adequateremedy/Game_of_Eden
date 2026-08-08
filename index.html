@@ -85,14 +85,10 @@ In order to establish that 'maintained connection' you must collect as many glow
         </div>
     </div>
 
-    <!-- Third Transition Popup Box -->
+    <!-- Level 1 Results Popup Box -->
     <div id="transition-popup-box">
         <div id="transition-popup-content">
-            <p>You have successfully stabilized your Aura. 
-Coherence of the specific Vibration within your Essence, has set your Energy Signature's Rhythm. 
-Now, we stabilize the Frequency interrupted by misaligned emotions. 
-The velocity of your Essence Frequency establishes a baseline that you must sculpt with wavelengths.</p>
-            <button class="btn" onclick="transitionToLevel2()">Proceed</button>
+            <!-- Injected dynamically by JS -->
         </div>
     </div>
 </div>
@@ -136,16 +132,12 @@ The velocity of your Essence Frequency establishes a baseline that you must scul
             <button onclick="restartLvl2Round1()">Restart Round 1</button>
         </div>
 
-        <!-- Calibration Finish Screen -->
+        <!-- Level 2 Results Screen -->
         <div id="resultsScreen" class="screen-overlay" style="display: none;">
-            <h2 style="color: #00ffcc; margin-top:0;">FREQUENCY CALIBRATION COMPLETE</h2>
-            <p>Your permanent energy signature frequency has been synthesized:</p>
-            <div class="hz-result" id="hzDisplay">0.00 Hz</div>
-            
-            <div class="math-breakdown" id="mathDisplay">
+            <h2 style="color: #00ffcc; margin-top:0;">LEVEL 2: RESONANCE MATRIX RESULTS</h2>
+            <div class="math-breakdown" id="mathDisplay" style="text-align: left; font-size: 15px; line-height: 1.8;">
                 <!-- Filled dynamically by script -->
             </div>
-            
             <button onclick="transitionToLevel3()">Proceed to Level 3</button>
         </div>
     </div>
@@ -172,9 +164,9 @@ The velocity of your Essence Frequency establishes a baseline that you must scul
             <p>
                 WARNING: VOLATILE ESSENCE DETECTED. Your raw Essence Core will naturally expand toward critical overload. 
                 <br><br>
-                You must rapidly <strong>TAP THE SPACEBAR</strong> (or click the screen) to physically compress and stabilize the energy. This containment protocol spans 5 rigorous calibration rounds. As the rounds progress, the core will resist containment with increasing violence.
+                You must rapidly <strong>TAP THE SPACEBAR</strong> (or click the screen) to physically compress and stabilize the energy. This containment protocol spans 5 rigorous calibration rounds (30 seconds each). As the rounds progress, the core will resist containment with increasing violence.
                 <br><br>
-                How you balance the core's density is your choice: forge it into a hyper-dense, devastating weapon (rapid tapping), or let it safely diffuse into a highly efficient flow (slow tapping). However, if it expands beyond its absolute limit, containment fails entirely. You have 30 seconds per round to lock in your energy amplitude.
+                How you balance the core's density is your choice: forge it into a hyper-dense, devastating weapon (rapid tapping), or let it safely diffuse into a highly efficient flow (slow tapping). However, if it expands beyond its absolute limit, containment fails entirely.
             </p>
             <button onclick="startLevel3()">Begin Containment</button>
         </div>
@@ -186,14 +178,21 @@ The velocity of your Essence Frequency establishes a baseline that you must scul
             <button onclick="resetToLevel3Init()">Restart Containment Protocol</button>
         </div>
 
-        <!-- Finale Complete Statistics Screen -->
+        <!-- Level 3 Results Screen -->
         <div id="lvl3ResultsScreen" class="lvl3-screen-overlay" style="display: none;">
-            <h2 style="color: #ff3366; margin-top:0; letter-spacing:2px;">SYNTHESIS COMPLETE</h2>
-            
-            <div class="summary-box" id="lvl3SummaryDisplay" style="overflow-y: auto; max-height: 350px;">
+            <h2 style="color: #ff3366; margin-top:0; letter-spacing:2px;">LEVEL 3: CORE STABILITY RESULTS</h2>
+            <div class="summary-box" id="lvl3SummaryDisplay" style="font-size: 16px; color: #fff; text-align: center; margin-bottom: 30px;">
                 <!-- Filled dynamically by runtime evaluation scripts -->
             </div>
-            
+            <button onclick="showFinalSynthesis()">Calculate Offensive Magic Power</button>
+        </div>
+
+        <!-- Final Synthesis Complete Screen -->
+        <div id="finalSynthesisScreen" class="lvl3-screen-overlay" style="display: none;">
+            <h2 style="color: #ff3366; margin-top:0; letter-spacing:2px;">SYNTHESIS COMPLETE</h2>
+            <div class="summary-box" id="finalSynthesisDisplay" style="overflow-y: auto; max-height: 380px; font-size: 14px; line-height: 1.6; text-align: left; padding: 25px;">
+                <!-- Filled dynamically by runtime evaluation scripts -->
+            </div>
             <button onclick="rebootSystem()">Reboot System</button>
         </div>
     </div>
