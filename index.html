@@ -120,9 +120,9 @@ The velocity of your Essence Frequency establishes a baseline that you must scul
             <h2 style="color: #00ffcc; margin-top:0;">FREQUENCY TUNING</h2>
             <p>
                 In order to stabilize the Frequency of this Energy, the Resonance Matrix must align your wavelength across three distinct layers of Reality.
-                You are tasked with catching the falling Frequency Blocks - 
-                Collect "Pink Accelerator Blocks" to increase the vibration (+5.0 Hz) of your wavelength 
-                or "Brown Dampener Blocks" to decrease the vibration (-5.0 Hz) of your wavelength. You must complete all three calibration cycles to proceed. Your Energy's final Frequency composition is entirely up to you.
+                You are tasked with calibrating your Frequency by catching the falling Frequency Blocks. You DO NOT need to catch all of them; simply catch what you feel is necessary to tune your wavelength.
+                <br><br>
+                Collect "Pink Accelerator Blocks" to increase the vibration (+5.0 Hz) or "Brown Dampener Blocks" to decrease the vibration (-5.0 Hz). You must complete all three calibration cycles to proceed. Your Energy's final Frequency composition is entirely up to you.
             </p>
             <button onclick="startLevel2()">Initialize Matrix</button>
         </div>
@@ -153,45 +153,44 @@ The velocity of your Essence Frequency establishes a baseline that you must scul
 
 <!-- LEVEL 3 CONTAINER -->
 <div id="level3-container">
-    <h1>Power Structure</h1>
+    <h1>Core Stabilization</h1>
     
     <!-- Top HUD Container Area -->
     <div id="lvl3HudContainer">
         <div class="lvl3-hud-item">Time Remaining: <span id="lvl3TimerValue" class="lvl3-hud-value">60.0</span>s</div>
-        <div class="lvl3-hud-item">
-            Core Stability: 
-            <div id="stabilityWrapper"><div id="stabilityBar"></div></div>
-        </div>
-        <div class="lvl3-hud-item">Voltage Flow: <span id="voltageValue" class="lvl3-hud-value">0.0 V</span></div>
+        <div class="lvl3-hud-item">Round: <span id="lvl3RoundValue" class="lvl3-hud-value">1/5</span></div>
+        <div class="lvl3-hud-item">Core Integrity: <span id="lvl3IntegrityValue" class="lvl3-hud-value" style="color:#00ffcc;">STABLE</span></div>
     </div>
 
     <div id="lvl3GameContainer">
         <canvas id="lvl3GameCanvas" width="800" height="450"></canvas>
+        <div id="lvl3Vignette"></div>
         
         <!-- Onboarding Screen -->
         <div id="lvl3IntroScreen" class="lvl3-screen-overlay">
-            <h2 style="color: #ff3366; margin-top:0; letter-spacing:3px;">AMPLITUDE SYNTHESIS</h2>
+            <h2 style="color: #ff3366; margin-top:0; letter-spacing:3px;">CORE CONTAINMENT</h2>
             <p>
-                WARNING: CORE STABILITY AT RISK. You have 60 seconds to lock in your energy amplitude before total system collapse. 
-                Static anomalies will actively seek out and disrupt your containment field. If core stability drops to 0%, the synthesis fails immediately. 
-                Navigate the structural layout to absorb surging currents from active corner lightning rods to raise your voltage capacity, 
-                or maintain a defensive central posture to absorb a safer minimum output. Survival is the only parameter.
+                WARNING: VOLATILE ESSENCE DETECTED. Your raw Essence Core will naturally expand toward critical overload. 
+                <br><br>
+                You must rapidly <strong>TAP THE SPACEBAR</strong> (or click the screen) to physically compress and stabilize the energy. This containment protocol spans 5 rigorous calibration rounds. As the rounds progress, the core will resist containment with increasing violence.
+                <br><br>
+                How you balance the core's density is your choice: forge it into a hyper-dense, devastating weapon (rapid tapping), or let it safely diffuse into a highly efficient flow (slow tapping). However, if it expands beyond its absolute limit, containment fails entirely.
             </p>
-            <button onclick="startLevel3()">Begin Level 3</button>
+            <button onclick="startLevel3()">Begin Containment</button>
         </div>
 
         <!-- Failure Screen -->
         <div id="lvl3FailureScreen" class="lvl3-screen-overlay" style="display: none;">
-            <div class="failure-title">SYNTHESIS FAILED</div>
-            <p style="color: #888; margin-bottom: 30px;">CRITICAL DISRUPTION: CORE CONTAINMENT FIELD COLLAPSED</p>
-            <button onclick="resetToLevel3Init()">Restart Matrix Calibration</button>
+            <div class="failure-title">CONTAINMENT FAILED</div>
+            <p style="color: #888; margin-bottom: 30px;">CRITICAL OVERLOAD: THE CORE EXCEEDED MAXIMUM CAPACITY</p>
+            <button onclick="resetToLevel3Init()">Restart Containment Protocol</button>
         </div>
 
         <!-- Finale Complete Statistics Screen -->
         <div id="lvl3ResultsScreen" class="lvl3-screen-overlay" style="display: none;">
-            <h2 style="color: #ff3366; margin-top:0; letter-spacing:2px;">AMPLITUDE SYNTHESIS FINALIZED</h2>
+            <h2 style="color: #ff3366; margin-top:0; letter-spacing:2px;">SYNTHESIS COMPLETE</h2>
             
-            <div class="summary-box" id="lvl3SummaryDisplay">
+            <div class="summary-box" id="lvl3SummaryDisplay" style="overflow-y: auto; max-height: 350px;">
                 <!-- Filled dynamically by runtime evaluation scripts -->
             </div>
             
