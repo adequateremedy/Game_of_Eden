@@ -121,9 +121,9 @@ body, html {
 }
 
 #popup-box p {
-    font-size: 16px;
-    line-height: 1.6;
-    margin-bottom: 30px;
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 20px;
     white-space: pre-line;
 }
 
@@ -528,9 +528,10 @@ body, html {
     line-height: 1.6;
     max-width: 600px;
     color: #ccd;
-    font-size: 16px;
+    font-size: 15px;
     margin-bottom: 30px;
     white-space: normal;
+    text-align: justify;
 }
 
 .hz-result {
@@ -676,11 +677,11 @@ body, html {
 }
 
 #lvl3IntroScreen p {
-    line-height: 1.7;
+    line-height: 1.6;
     max-width: 620px;
     color: #a0a0b5;
-    font-size: 15px;
-    margin-bottom: 35px;
+    font-size: 14px;
+    margin-bottom: 25px;
     text-align: justify;
 }
 
