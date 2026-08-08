@@ -121,10 +121,11 @@ body, html {
 }
 
 #popup-box p {
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.5;
     margin-bottom: 20px;
     white-space: pre-line;
+    text-align: justify;
 }
 
 .btn {
@@ -148,16 +149,6 @@ body, html {
     opacity: 0;
     transition: opacity 1s ease;
     width: 100%;
-}
-
-#selection-text {
-    font-size: 15px;
-    line-height: 1.5;
-    text-align: center;
-    margin-bottom: 25px;
-    white-space: pre-line;
-    color: #fff;
-    transition: opacity 1s ease;
 }
 
 #circle-grid-container {
@@ -347,11 +338,12 @@ body, html {
 }
 
 #maze-instruction-box p {
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.6;
     margin-bottom: 30px;
     white-space: pre-line;
     color: #fff;
+    text-align: justify;
 }
 
 /* Third Transition Popup Box */
@@ -417,7 +409,7 @@ body, html {
 
 
 /* =========================================
-   LEVEL 2 CSS 
+   LEVEL 2 CSS (Pink Sparks & Brown Anchors)
    ========================================= */
 
 #level2-container {
@@ -528,8 +520,8 @@ body, html {
     line-height: 1.6;
     max-width: 600px;
     color: #ccd;
-    font-size: 15px;
-    margin-bottom: 30px;
+    font-size: 14px;
+    margin-bottom: 25px;
     white-space: normal;
     text-align: justify;
 }
@@ -680,7 +672,7 @@ body, html {
     line-height: 1.6;
     max-width: 620px;
     color: #a0a0b5;
-    font-size: 14px;
+    font-size: 13px;
     margin-bottom: 25px;
     text-align: justify;
 }
