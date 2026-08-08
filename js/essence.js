@@ -5,9 +5,13 @@
 // ==========================================
 window.playerStats = {
     element: "",
+    elementDetail: "",
     auraColor: "",
     orbsCollected: 0,
+    mazeTimeLeft: 0,
     finalHz: 0,
+    finalVelocity: 0,
+    avgKinetic: 0,
     lvl3AvgRadius: 0
 };
 
@@ -94,10 +98,10 @@ const loreData = [
 ];
 
 const circleConfigs = [
-    { name: 'Agni', bg: '#ff0000', color: '#fff', shadow: '1px 1px 2px #000', aura: 'Red Aura' },
-    { name: 'Jala', bg: '#0000ff', color: '#fff', shadow: '1px 1px 2px #000', aura: 'Blue Aura' },
-    { name: 'Prithvi', bg: '#00ff00', color: '#fff', shadow: '1px 1px 2px #000', aura: 'Green Aura' },
-    { name: 'Vayu', bg: '#ffff00', color: '#000', shadow: 'none', aura: 'Yellow Aura' }
+    { name: 'Agni', detail: 'Agni (fire)', bg: '#ff0000', color: '#fff', shadow: '1px 1px 2px #000', aura: 'Red Aura' },
+    { name: 'Jala', detail: 'Jala (water)', bg: '#0000ff', color: '#fff', shadow: '1px 1px 2px #000', aura: 'Blue Aura' },
+    { name: 'Prithvi', detail: 'Prithvi (earth)', bg: '#00ff00', color: '#fff', shadow: '1px 1px 2px #000', aura: 'Green Aura' },
+    { name: 'Vayu', detail: 'Vayu (air)', bg: '#ffff00', color: '#000', shadow: 'none', aura: 'Yellow Aura' }
 ];
 
 let selectedColorHex = '';
@@ -193,6 +197,7 @@ function selectCircle(selectedIndex) {
     chosenMazeIndex = selectedIndex; 
     
     window.playerStats.element = circleConfigs[selectedIndex].name;
+    window.playerStats.elementDetail = circleConfigs[selectedIndex].detail;
     window.playerStats.auraColor = circleConfigs[selectedIndex].aura;
 
     const selectionText = document.getElementById('selection-text');
@@ -469,10 +474,6 @@ function triggerMazeEntry() {
 function startMainTimer() {
     timerInterval = setInterval(() => {
         gameTimer--;
-        let mins = Math.floor(gameTimer / 60);
-        let secs = gameTimer % 60;
-        document.getElementById('timer-display').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-
         if (gameTimer <= 0) {
             clearInterval(timerInterval);
             location.reload();
@@ -678,6 +679,7 @@ function gameLoop() {
                     clearInterval(timerInterval);
                     
                     window.playerStats.orbsCollected = orbsCollectedCount;
+                    window.playerStats.mazeTimeLeft = gameTimer;
 
                     const mazeContainer = document.getElementById('maze-container');
                     const mazeUI = document.getElementById('maze-ui');
@@ -693,6 +695,22 @@ function gameLoop() {
                         mazeUI.style.display = 'none';
                         
                         const transitionPopup = document.getElementById('transition-popup-box');
+                        const transitionContent = document.getElementById('transition-popup-content');
+                        
+                        let mins = Math.floor(gameTimer / 60);
+                        let secs = gameTimer % 60;
+                        let timeStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+                        transitionContent.innerHTML = `
+                            <p style="font-size: 18px; color: #00ffcc; margin-bottom: 20px;">LEVEL 1: SOURCE CONNECTION COMPLETE</p>
+                            <p>You have successfully stabilized your Aura and reached the center.</p>
+                            <div style="background: #1a1a22; padding: 15px 25px; border-radius: 4px; border: 1px solid #b87333; margin: 20px 0; font-size: 15px; text-align: left;">
+                                -> Orbs Collected: <strong>${orbsCollectedCount} / 20</strong><br>
+                                -> Time Remaining: <strong>${timeStr}</strong>
+                            </div>
+                            <button class="btn" onclick="transitionToLevel2()">Proceed to Level 2</button>
+                        `;
+
                         transitionPopup.style.display = 'flex';
                         transitionPopup.style.pointerEvents = 'auto';
                         
@@ -821,7 +839,6 @@ function startLvl2Round() {
 function restartLvl2Round1() {
     document.getElementById("lvl2WarningScreen").style.display = "none";
     
-    // Wipe trackers since round 1 was failed
     lvl2AccumulatedKinetic = 0;
     lvl2KineticTicks = 0;
     lvl2Player.speed = lvl2Player.baseSpeed;
@@ -844,7 +861,6 @@ function updateLvl2PlayerLogic() {
         isMoving = true;
     }
     
-    // Manage Kinetic Output Bar smoothly based on current speed potential
     if (isMoving) {
         lvl2CurrentKinetic += (lvl2Player.speed * 0.1); 
     } else {
@@ -857,7 +873,6 @@ function updateLvl2PlayerLogic() {
     lvl2AccumulatedKinetic += lvl2CurrentKinetic;
     lvl2KineticTicks++;
     
-    // Bounds checking
     if (nextX < 20) nextX = 20;
     if (nextX > lvl2Canvas.width - 20) nextX = lvl2Canvas.width - 20;
     
@@ -866,7 +881,6 @@ function updateLvl2PlayerLogic() {
     
     lvl2Player.x = nextX;
     
-    // Slower Block Spawning (roughly 30 blocks per minute)
     lvl2Frames++;
     if (lvl2Frames % 120 === 0) {
         let isPink = Math.random() > 0.5;
@@ -879,12 +893,10 @@ function updateLvl2PlayerLogic() {
         });
     }
     
-    // Block logic (Modifiers affect speed in real-time)
     for (let i = lvl2Blocks.length - 1; i >= 0; i--) {
         let b = lvl2Blocks[i];
         b.y += 3.5; 
         
-        // Collision check
         if (
             b.x < lvl2Player.x + lvl2Player.width/2 &&
             b.x + b.width > lvl2Player.x - lvl2Player.width/2 &&
@@ -892,10 +904,10 @@ function updateLvl2PlayerLogic() {
             b.y + b.height > lvl2Player.y - lvl2Player.height/2
         ) {
             if (b.type === 2) {
-                lvl2Player.speed += 1.5; // Pink Accelerator
+                lvl2Player.speed += 1.5; 
             } else {
-                lvl2Player.speed -= 1.5; // Brown Dampener
-                if (lvl2Player.speed < 2.0) lvl2Player.speed = 2.0; // Min cap so they don't freeze
+                lvl2Player.speed -= 1.5; 
+                if (lvl2Player.speed < 2.0) lvl2Player.speed = 2.0; 
             }
             
             lvl2Blocks.splice(i, 1);
@@ -913,10 +925,8 @@ function drawLvl2Screen() {
     
     lvl2Ctx.clearRect(0, 0, lvl2Canvas.width, lvl2Canvas.height);
     
-    // Draw Blocks
     for (let b of lvl2Blocks) {
         if (b.type === 2) {
-            // Pink Accelerator
             lvl2Ctx.fillStyle = "#ff007f";
             lvl2Ctx.fillRect(b.x, b.y, b.width, b.height);
             lvl2Ctx.fillStyle = "#000000";
@@ -927,7 +937,6 @@ function drawLvl2Screen() {
             lvl2Ctx.closePath();
             lvl2Ctx.fill();
         } else {
-            // Brown Dampener
             lvl2Ctx.fillStyle = "#4a2c11";
             lvl2Ctx.fillRect(b.x, b.y, b.width, b.height);
             lvl2Ctx.strokeStyle = "#8c5828";
@@ -941,7 +950,6 @@ function drawLvl2Screen() {
         }
     }
     
-    // Draw Player Paddle
     lvl2Ctx.fillStyle = lvl2Player.color;
     lvl2Ctx.shadowBlur = 10;
     lvl2Ctx.shadowColor = lvl2Player.color;
@@ -954,16 +962,15 @@ function updateLvl2HUD() {
     document.getElementById("roundValue").innerText = `${lvl2Round}/${lvl2MaxRounds}`;
     document.getElementById("velocityValue").innerText = lvl2Player.speed.toFixed(1);
     
-    // Update Kinetic Bar
     const kineticBar = document.getElementById("kineticBar");
     kineticBar.style.width = lvl2CurrentKinetic + "%";
     
     if (lvl2CurrentKinetic > 80) {
-        kineticBar.style.backgroundColor = "#ff007f"; // Erratic range
+        kineticBar.style.backgroundColor = "#ff007f"; 
     } else if (lvl2CurrentKinetic > 40) {
-        kineticBar.style.backgroundColor = "#ffcc00"; // Steady range
+        kineticBar.style.backgroundColor = "#ffcc00"; 
     } else {
-        kineticBar.style.backgroundColor = "#00ffcc"; // Calm range
+        kineticBar.style.backgroundColor = "#00ffcc"; 
     }
 }
 
@@ -971,7 +978,6 @@ function handleLvl2RoundEnd() {
     lvl2GameActive = false;
     cancelAnimationFrame(lvl2AnimationFrameId);
     
-    // Fail-safe logic: If player didn't move at all in Round 1
     if (lvl2Round === 1 && lvl2TotalDistanceMoved === 0) {
         document.getElementById("lvl2WarningScreen").style.display = "flex";
         return;
@@ -987,7 +993,6 @@ function handleLvl2RoundEnd() {
 
 function calculateLvl2FinalMetrics() {
     let avgKinetic = lvl2AccumulatedKinetic / lvl2KineticTicks;
-    // Map average kinetic output (0-100) to final frequency range (40.0 - 120.0 Hz)
     let finalHz = 40.0 + (avgKinetic / 100.0) * 80.0;
     
     if (finalHz < 40) finalHz = 40;
@@ -999,9 +1004,13 @@ function calculateLvl2FinalMetrics() {
 function handleLvl2FinalComplete() {
     const scores = calculateLvl2FinalMetrics();
     window.playerStats.finalHz = scores.finalHz; 
+    window.playerStats.avgKinetic = scores.avgKinetic;
+    window.playerStats.finalVelocity = lvl2Player.speed;
     
-    document.getElementById("hzDisplay").innerText = scores.finalHz.toFixed(2) + " Hz";
-    document.getElementById("mathDisplay").innerHTML = `<strong>CALIBRATION SUMMARY:</strong><br> Average Kinetic Output: ${scores.avgKinetic.toFixed(1)}%<br> Base Velocity Range: 40.0 Hz - 120.0 Hz<br> <span style="color:#00ffcc;">Final Synthesized Frequency: ${scores.finalHz.toFixed(2)} Hz</span>`;
+    document.getElementById("mathDisplay").innerHTML = `
+        -> Average Kinetic Output: <strong>${scores.avgKinetic.toFixed(1)}%</strong><br>
+        -> Base Velocity: <strong>${lvl2Player.speed.toFixed(1)}</strong>
+    `;
     
     document.getElementById("resultsScreen").style.display = "flex";
 }
@@ -1059,7 +1068,6 @@ function transitionToLevel3() {
 const lvl3Canvas = document.getElementById("lvl3GameCanvas");
 const lvl3Ctx = lvl3Canvas ? lvl3Canvas.getContext("2d") : null;
 
-// Bind Click Event
 if (lvl3Canvas) {
     lvl3Canvas.addEventListener('mousedown', () => {
         if (lvl3GameActive) lvl3Tap();
@@ -1075,12 +1083,10 @@ let lvl3TimeRemaining = lvl3GameTimeLimit;
 let lvl3GameActive = false;
 let lvl3AnimationFrameId;
 
-// Mechanics Data
 let lvl3CoreRadius = 40;
 const lvl3MaxRadius = 200; 
 const lvl3TapCompression = 15.0; 
 
-// Trackers
 let lvl3AvgAccumulator = 0;
 let lvl3Ticks = 0;
 
@@ -1096,6 +1102,7 @@ function startLevel3() {
     document.getElementById("lvl3IntroScreen").style.display = "none";
     document.getElementById("lvl3FailureScreen").style.display = "none";
     document.getElementById("lvl3ResultsScreen").style.display = "none";
+    document.getElementById("finalSynthesisScreen").style.display = "none";
     
     for (let key in keys) { keys[key] = false; }
     
@@ -1120,19 +1127,16 @@ function lvl3Tap() {
 }
 
 function updateLvl3SimulationLogic() {
-    // Escalate difficulty based on round
     let expansionRates = [0.5, 0.8, 1.1, 1.5, 2.0];
     let currentExpansionRate = expansionRates[lvl3Round - 1];
     
     lvl3CoreRadius += currentExpansionRate;
     
-    // Fail check
     if (lvl3CoreRadius >= lvl3MaxRadius) {
         handleLvl3Failure();
         return;
     }
     
-    // Track stats continuously
     lvl3AvgAccumulator += lvl3CoreRadius;
     lvl3Ticks++;
 }
@@ -1145,7 +1149,6 @@ function drawLvl3Graphics() {
     const cx = lvl3Canvas.width / 2;
     const cy = lvl3Canvas.height / 2;
     
-    // Draw the pulsating core
     lvl3Ctx.beginPath();
     lvl3Ctx.arc(cx, cy, lvl3CoreRadius, 0, Math.PI * 2);
     lvl3Ctx.fillStyle = lvl3ElementColor;
@@ -1154,10 +1157,9 @@ function drawLvl3Graphics() {
     lvl3Ctx.fill();
     lvl3Ctx.shadowBlur = 0;
     
-    // Dynamic Vignette (Red glow when close to failing)
     const vignette = document.getElementById("lvl3Vignette");
     if (lvl3CoreRadius > 150) {
-        let threatLevel = (lvl3CoreRadius - 150) / 50; // 0 to 1
+        let threatLevel = (lvl3CoreRadius - 150) / 50; 
         vignette.style.boxShadow = `inset 0 0 ${200 * threatLevel}px rgba(255, 0, 0, ${threatLevel * 0.8})`;
     } else {
         vignette.style.boxShadow = `inset 0 0 0px rgba(255, 0, 0, 0)`;
@@ -1199,100 +1201,130 @@ function handleLvl3Failure() {
     document.getElementById("lvl3FailureScreen").style.display = "flex";
 }
 
-function buildFinalStatSheet() {
-    const stats = window.playerStats;
-    const hz = stats.finalHz;
-    
-    // LEVEL 1: Base DMG Data
-    let validOrbs = stats.orbsCollected;
-    if (validOrbs < 1) validOrbs = 1;
-    if (validOrbs > 20) validOrbs = 20;
-    
-    const element = stats.element || "Agni";
-    const powerName = powerRegistry[element][validOrbs - 1];
-    const baseDmg = validOrbs * 5; 
-    
-    // LEVEL 2: Accuracy Data
-    let hzProfile = "";
-    let accuracy = 0;
-    let accuracyReason = "";
-    
-    if (hz <= 70.0) {
-        hzProfile = "Calm";
-        accuracy = 75;
-        accuracyReason = "highly focused and deeply rooted emotion";
-    } else if (hz <= 95.0) {
-        hzProfile = "Steady";
-        accuracy = 50;
-        accuracyReason = "standard, controlled flow";
-    } else {
-        hzProfile = "Erratic";
-        accuracy = 25;
-        accuracyReason = "wild, unstable, and unreliable emotion";
-    }
-    
-    // LEVEL 3: Multiplier and Drain Data
-    let avgRadius = stats.lvl3AvgRadius;
-    let densityLabel = "";
-    let multiplier = 1.0;
-    let drain = 5;
-    let maxCasts = 20;
-    
-    if (avgRadius <= 80) {
-        densityLabel = "Hyper-Dense Core (Inner Tier)";
-        multiplier = 2.0;
-        drain = 20;
-        maxCasts = 5;
-    } else if (avgRadius <= 140) {
-        densityLabel = "Standard Core (Middle Tier)";
-        multiplier = 1.5;
-        drain = 10;
-        maxCasts = 10;
-    } else {
-        densityLabel = "Diffused Core (Outer Tier)";
-        multiplier = 1.0;
-        drain = 5;
-        maxCasts = 20;
-    }
-    
-    let finalDmg = Math.floor(baseDmg * multiplier);
-
-    let statHTML = `
-============================================================<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AMPLITUDE SYNTHESIS FINALIZED<br>
-============================================================<br>
- CORE ELEMENT SELECTION: ${element.toUpperCase()}<br>
- OFFENSIVE MAGIC POWER LOCKED: ${powerName.toUpperCase()}<br>
-<br>
- [LEVEL 1] BASE POTENTIAL:<br>
- -> ${validOrbs} Orbs Gathered = ${baseDmg} Base DMG<br>
-<br>
- [LEVEL 2] EMOTIONAL FREQUENCY:<br>
- -> ${hz.toFixed(1)} Hz (${hzProfile})<br>
- -> Hit Chance: ${accuracy}% (Due to ${accuracyReason})<br>
-<br>
- [LEVEL 3] CORE DENSITY:<br>
- -> ${densityLabel} (${avgRadius.toFixed(1)}px Avg Radius)<br>
- -> Power Multiplier: x${multiplier.toFixed(1)}<br>
- -> Essence Drain: ${drain}% HP per cast<br>
-<br>
- ============================================================<br>
- COMBAT OUTPUT SPECIFICATIONS:<br>
- Damage per Hit : ${finalDmg} DMG<br>
- Maximum Casts : ${maxCasts} Casts before Essence Depletion<br>
-============================================================
-    `;
-    return statHTML;
-}
-
 function handleLvl3Complete() {
     lvl3GameActive = false;
     cancelAnimationFrame(lvl3AnimationFrameId);
     
     window.playerStats.lvl3AvgRadius = lvl3AvgAccumulator / lvl3Ticks;
     
-    document.getElementById("lvl3SummaryDisplay").innerHTML = buildFinalStatSheet();
+    document.getElementById("lvl3SummaryDisplay").innerHTML = `
+        Core Density (Average Radius): <strong>${window.playerStats.lvl3AvgRadius.toFixed(1)} px</strong>
+    `;
     document.getElementById("lvl3ResultsScreen").style.display = "flex";
+}
+
+function showFinalSynthesis() {
+    document.getElementById("lvl3ResultsScreen").style.display = "none";
+    document.getElementById("finalSynthesisDisplay").innerHTML = buildFinalStatSheet();
+    document.getElementById("finalSynthesisScreen").style.display = "flex";
+}
+
+function buildFinalStatSheet() {
+    const stats = window.playerStats;
+    const hz = stats.finalHz;
+    
+    let validOrbs = stats.orbsCollected;
+    if (validOrbs < 1) validOrbs = 1;
+    if (validOrbs > 20) validOrbs = 20;
+    
+    const element = stats.element || "Agni";
+    const elementDetail = stats.elementDetail || "Agni (fire)";
+    const powerName = powerRegistry[element][validOrbs - 1];
+    const baseDmg = validOrbs * 5; 
+    
+    // Coherence Mapping
+    let coherenceName = "";
+    let coherenceDescription = "";
+    if (validOrbs <= 5) {
+        coherenceName = "Novice";
+        coherenceDescription = "you are just beginning to awaken and manifest this energy";
+    } else if (validOrbs <= 10) {
+        coherenceName = "Adept";
+        coherenceDescription = "you have a reliable grasp on this energy and can manipulate it with standard control";
+    } else if (validOrbs <= 15) {
+        coherenceName = "Expert";
+        coherenceDescription = "you possess advanced fluidity and sharpened command over this energy";
+    } else {
+        coherenceName = "Master";
+        coherenceDescription = "you hold complete, absolute mastery and profound resonance over manipulating this energy";
+    }
+
+    // Hz Vibration Mapping
+    let vibrationText = "";
+    let accuracy = 0;
+    if (hz <= 70.0) {
+        vibrationText = "snaps forward with absolute, pinpoint accuracy, cutting straight through the space between you and your target";
+        accuracy = 75;
+    } else if (hz <= 95.0) {
+        vibrationText = "maintains a standard, controlled flow, moving with a balanced rhythm and flowing smoothly into your strike without sudden distortion";
+        accuracy = 50;
+    } else {
+        vibrationText = "pulses violently, crackling with a volatile, untamed edge that makes it terrifyingly fast but hard to predict";
+        accuracy = 25;
+    }
+
+    // Core Density Multiplier & Essence Drain Mapping
+    let avgRadius = stats.lvl3AvgRadius;
+    let multiplier = 1.0;
+    let drain = 5;
+    if (avgRadius <= 80) {
+        multiplier = 2.0;
+        drain = 20;
+    } else if (avgRadius <= 140) {
+        multiplier = 1.5;
+        drain = 10;
+    } else {
+        multiplier = 1.0;
+        drain = 5;
+    }
+    
+    let finalDmg = Math.floor(baseDmg * multiplier);
+
+    // RP Application Generator mapping based on Core Density & Tier
+    let visualBuildup = "";
+    if (element === 'Agni') {
+        if (multiplier === 2.0) visualBuildup = "Your thermal energy condenses into a blinding, hyper-focused point of white-hot pressure that shimmers with dry heat.";
+        else if (multiplier === 1.5) visualBuildup = "Your thermal energy tightens into a disciplined, burning focal point that radiates steady, intense heat.";
+        else visualBuildup = "Your thermal energy billows outward in a wide, sprawling wave, crackling with loose, ambient flames.";
+    } else if (element === 'Jala') {
+        if (multiplier === 2.0) visualBuildup = "Your moisture essence compresses into a razor-sharp, heavy drop of hyper-dense fluid carrying immense weight.";
+        else if (multiplier === 1.5) visualBuildup = "Your moisture essence flows into a controlled, fluid stream that ripples with quiet, deep pressure.";
+        else visualBuildup = "Your moisture essence expands into a sweeping, mist-laden tide that saturates the surrounding air.";
+    } else if (element === 'Prithvi') {
+        if (multiplier === 2.0) visualBuildup = "Your seismic essence locks into a solid, unyielding mass of compressed earth and stone-like gravity.";
+        else if (multiplier === 1.5) visualBuildup = "Your seismic essence grounds itself into a heavy, reliable weight that anchors your stance completely.";
+        else visualBuildup = "Your seismic essence spreads outward as a low, vibrating tremor that shakes the ground loosely over a wider area.";
+    } else {
+        if (multiplier === 2.0) visualBuildup = "Your atmospheric essence sharpens into a piercing, compressed blade of absolute vacuum pressure.";
+        else if (multiplier === 1.5) visualBuildup = "Your atmospheric essence gathers into a brisk, focused current that hums with kinetic energy.";
+        else visualBuildup = "Your atmospheric essence billows out into a chaotic, sweeping gust of wind.";
+    }
+
+    let impactDescription = "";
+    if (validOrbs <= 5 && multiplier === 1.0) {
+        impactDescription = "The resulting discharge leaves behind a light, superficial mark (such as a minor scratch, scorch, or bruise) upon contact, draining only a whisper of your Essence to maintain.";
+    } else if (validOrbs >= 16 && multiplier === 2.0) {
+        impactDescription = "The resulting discharge surges with devastating, catastrophic potential, entirely capable of shattering heavy armor or violently knocking a target off balance. A massive chunk of your Essence is consumed in the process, leaving you gasping and feeling heavily drained as a result.";
+    } else {
+        impactDescription = "The resulting discharge delivers a solid, forceful strike capable of fracturing standard defenses, leaving a noticeable impact as a moderate wave of fatigue settles into your muscles, drawing deeper from your Essence.";
+    }
+
+    let statHTML = `
+============================================================<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SYNTHESIS COMPLETE<br>
+============================================================<br><br>
+Essence Stabilization Complete - Energy Signature Obtained:<br><br>
+Your Core Essence is ${elementDetail}.<br><br>
+Your Offensive Magic Power is ${powerName}.<br><br>
+Your understanding of this Power is ${coherenceName}, which means that ${coherenceDescription}.<br><br>
+Because of the Rhythm and Frequency of your emotional state, your emotional vibration ${vibrationText}, making the frequency of your ${powerName} have a ${accuracy}% chance of connecting an attack, when using this Offensive Magic Power.<br><br>
+Due to the density of this Energy's Core, you were able to obtain a total of ${finalDmg} DMG for ${powerName}, per hit.<br><br>
+${powerName} will consume ${drain}% of your total Essence, each time it is used.<br><br>
+<strong>RP Application Example:</strong><br>
+*You channel your stabilized ${element} core, your expression locking into absolute focus as you draw the power directly into your hands. ${visualBuildup} Because of the Rhythm and Frequency of your emotional state, your emotional vibration ${vibrationText}. When you release **${powerName}**, it cuts straight through the space between you and your target. ${impactDescription}*<br>
+============================================================
+    `;
+    return statHTML;
 }
 
 function lvl3GameLoop() {
@@ -1318,6 +1350,7 @@ function lvl3GameLoop() {
 function resetToLevel3Init() {
     document.getElementById("lvl3ResultsScreen").style.display = "none";
     document.getElementById("lvl3FailureScreen").style.display = "none";
+    document.getElementById("finalSynthesisScreen").style.display = "none";
     document.getElementById("lvl3IntroScreen").style.display = "flex";
     
     if (lvl3Ctx) lvl3Ctx.clearRect(0, 0, lvl3Canvas.width, lvl3Canvas.height);
