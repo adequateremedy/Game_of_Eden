@@ -200,9 +200,6 @@ function selectCircle(selectedIndex) {
     window.playerStats.elementDetail = circleConfigs[selectedIndex].detail;
     window.playerStats.auraColor = circleConfigs[selectedIndex].aura;
 
-    const selectionText = document.getElementById('selection-text');
-    selectionText.style.opacity = '0';
-
     for (let i = 0; i < 4; i++) {
         if (i !== selectedIndex) {
             const circle = document.getElementById(`circle-${i}`);
@@ -703,7 +700,7 @@ function gameLoop() {
 
                         transitionContent.innerHTML = `
                             <p style="font-size: 18px; color: #00ffcc; margin-bottom: 20px;">LEVEL 1: SOURCE CONNECTION ESTABLISHED</p>
-                            <p>You have successfully stabilized the Energy's connection to the Source.</p>
+                            <p>You have successfully stabilized your Energy's connection to the Source.</p>
                             <div style="background: #1a1a22; padding: 15px 25px; border-radius: 4px; border: 1px solid #b87333; margin: 20px 0; font-size: 15px; text-align: left;">
                                 -> Orbs Collected: <strong>${orbsCollectedCount} / 20</strong><br>
                                 -> Time Remaining: <strong>${timeStr}</strong>
@@ -767,7 +764,7 @@ function transitionToLevel2() {
 
 
 // ==========================================
-// LEVEL 2: FREQUENCY TUNING (Falling Blocks)
+// LEVEL 2: RESONATING MAGIC (Pink Sparks & Brown Anchors)
 // ==========================================
 
 const lvl2Canvas = document.getElementById("gameCanvas");
@@ -782,7 +779,7 @@ let lvl2TimeRemaining = lvl2Duration;
 let lvl2GameActive = false;
 let lvl2AnimationFrameId;
 
-let lvl2Blocks = [];
+let lvl2Items = [];
 let lvl2Frames = 0;
 
 let lvl2CurrentKinetic = 0;
@@ -794,8 +791,8 @@ let lvl2TotalDistanceMoved = 0;
 const lvl2Player = {
     x: 400,
     y: 370,
-    width: 40,
-    height: 10,
+    width: 44,
+    height: 12,
     speed: 7.0,
     baseSpeed: 7.0,
     color: "#00ffcc"
@@ -827,7 +824,7 @@ function startLvl2Round() {
     lvl2CurrentKinetic = 0;
     lvl2TotalDistanceMoved = 0;
     
-    lvl2Blocks = [];
+    lvl2Items = [];
     lvl2Frames = 0;
     
     lvl2StartTime = performance.now();
@@ -883,39 +880,37 @@ function updateLvl2PlayerLogic() {
     
     lvl2Frames++;
     if (lvl2Frames % 120 === 0) {
-        let isPink = Math.random() > 0.5;
-        lvl2Blocks.push({
+        let isSpark = Math.random() > 0.5;
+        lvl2Items.push({
             x: Math.random() * (lvl2Canvas.width - 40) + 20,
             y: -20,
-            type: isPink ? 2 : 3,
-            width: 20,
-            height: 20
+            type: isSpark ? 'spark' : 'anchor',
+            radius: isSpark ? 10 : 12
         });
     }
     
-    for (let i = lvl2Blocks.length - 1; i >= 0; i--) {
-        let b = lvl2Blocks[i];
-        b.y += 3.5; 
+    for (let i = lvl2Items.length - 1; i >= 0; i--) {
+        let item = lvl2Items[i];
+        item.y += 3.5; 
         
-        if (
-            b.x < lvl2Player.x + lvl2Player.width/2 &&
-            b.x + b.width > lvl2Player.x - lvl2Player.width/2 &&
-            b.y < lvl2Player.y + lvl2Player.height/2 &&
-            b.y + b.height > lvl2Player.y - lvl2Player.height/2
-        ) {
-            if (b.type === 2) {
+        let dx = lvl2Player.x - item.x;
+        let dy = lvl2Player.y - item.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < (lvl2Player.width/2 + item.radius)) {
+            if (item.type === 'spark') {
                 lvl2Player.speed += 1.5; 
             } else {
                 lvl2Player.speed -= 1.5; 
                 if (lvl2Player.speed < 2.0) lvl2Player.speed = 2.0; 
             }
             
-            lvl2Blocks.splice(i, 1);
+            lvl2Items.splice(i, 1);
             continue;
         }
         
-        if (b.y > lvl2Canvas.height) {
-            lvl2Blocks.splice(i, 1);
+        if (item.y > lvl2Canvas.height + 20) {
+            lvl2Items.splice(i, 1);
         }
     }
 }
@@ -925,29 +920,48 @@ function drawLvl2Screen() {
     
     lvl2Ctx.clearRect(0, 0, lvl2Canvas.width, lvl2Canvas.height);
     
-    for (let b of lvl2Blocks) {
-        if (b.type === 2) {
+    // Draw Pink Sparks & Brown Anchors
+    for (let item of lvl2Items) {
+        lvl2Ctx.save();
+        if (item.type === 'spark') {
+            // Glowing Pink Spark (Star-like or radiating orb)
             lvl2Ctx.fillStyle = "#ff007f";
-            lvl2Ctx.fillRect(b.x, b.y, b.width, b.height);
-            lvl2Ctx.fillStyle = "#000000";
+            lvl2Ctx.shadowBlur = 12;
+            lvl2Ctx.shadowColor = "#ff007f";
             lvl2Ctx.beginPath();
-            lvl2Ctx.moveTo(b.x + b.width/2, b.y + 4);
-            lvl2Ctx.lineTo(b.x + 4, b.y + b.height - 4);
-            lvl2Ctx.lineTo(b.x + b.width - 4, b.y + b.height - 4);
-            lvl2Ctx.closePath();
+            lvl2Ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
+            lvl2Ctx.fill();
+            
+            // Inner bright core
+            lvl2Ctx.fillStyle = "#ffffff";
+            lvl2Ctx.beginPath();
+            lvl2Ctx.arc(item.x, item.y, item.radius * 0.4, 0, Math.PI * 2);
             lvl2Ctx.fill();
         } else {
-            lvl2Ctx.fillStyle = "#4a2c11";
-            lvl2Ctx.fillRect(b.x, b.y, b.width, b.height);
-            lvl2Ctx.strokeStyle = "#8c5828";
-            lvl2Ctx.lineWidth = 2;
+            // Brown Anchor symbol / shape
+            lvl2Ctx.fillStyle = "#5c3a21";
+            lvl2Ctx.shadowBlur = 8;
+            lvl2Ctx.shadowColor = "#3d2412";
+            
+            // Draw Anchor Ring & Crossbar
             lvl2Ctx.beginPath();
-            lvl2Ctx.moveTo(b.x + 2, b.y + 7);
-            lvl2Ctx.bezierCurveTo(b.x + 8, b.y + 2, b.x + 12, b.y + 12, b.x + 18, b.y + 7);
-            lvl2Ctx.moveTo(b.x + 2, b.y + 13);
-            lvl2Ctx.bezierCurveTo(b.x + 8, b.y + 8, b.x + 12, b.y + 18, b.x + 18, b.y + 13);
+            lvl2Ctx.arc(item.x, item.y - 3, item.radius * 0.6, Math.PI, 0, false);
+            lvl2Ctx.lineWidth = 3;
+            lvl2Ctx.strokeStyle = "#8c5828";
+            lvl2Ctx.stroke();
+            
+            lvl2Ctx.beginPath();
+            lvl2Ctx.moveTo(item.x, item.y - item.radius);
+            lvl2Ctx.lineTo(item.x, item.y + item.radius);
+            lvl2Ctx.lineWidth = 3;
+            lvl2Ctx.stroke();
+            
+            lvl2Ctx.beginPath();
+            lvl2Ctx.moveTo(item.x - 7, item.y - 3);
+            lvl2Ctx.lineTo(item.x + 7, item.y - 3);
             lvl2Ctx.stroke();
         }
+        lvl2Ctx.restore();
     }
     
     lvl2Ctx.fillStyle = lvl2Player.color;
@@ -1063,7 +1077,7 @@ function transitionToLevel3() {
 
 
 // ==========================================
-// LEVEL 3: RHYTHM HARMONIZATION
+// LEVEL 3: RHYTHM HARMONIZATION (Progressive Timers)
 // ==========================================
 const lvl3Canvas = document.getElementById("lvl3GameCanvas");
 const lvl3Ctx = lvl3Canvas ? lvl3Canvas.getContext("2d") : null;
@@ -1325,7 +1339,7 @@ Because of the Rhythm and Frequency of your emotional state, the vibration of yo
 Due to the density of this Energy's Core, you were able to obtain a total of ${finalDmg} DMG for ${powerName}, per connected hit.<br><br>
 ${powerName} will consume ${drain}% of your total Essence, each time it is used (regardless if it connects or not).<br><br>
 <strong>RP Application Example:</strong><br>
-*You channel your stabilized ${element} core, your expression locking into absolute focus as you draw the power directly into your hands. ${visualBuildup} Because of the Rhythm and Frequency of your emotional state, your emotional vibration ${vibrationText}. When you release ${powerName}, it can ${impactDescription}*<br>
+*You channel your ${element} core, your expression locking into absolute focus as you draw the power directly into your hands. ${visualBuildup} Because of the Rhythm and Frequency of your emotional state, your emotional vibration ${vibrationText}. When you release ${powerName}, it can ${impactDescription}*<br>
 ============================================================
     `;
     return statHTML;
