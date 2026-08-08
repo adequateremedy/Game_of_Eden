@@ -702,8 +702,8 @@ function gameLoop() {
                         let timeStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 
                         transitionContent.innerHTML = `
-                            <p style="font-size: 18px; color: #00ffcc; margin-bottom: 20px;">LEVEL 1: SOURCE CONNECTION COMPLETE</p>
-                            <p>You have successfully stabilized your Aura and reached the center.</p>
+                            <p style="font-size: 18px; color: #00ffcc; margin-bottom: 20px;">LEVEL 1: SOURCE CONNECTION ESTABLISHED</p>
+                            <p>You have successfully stabilized the Energy's connection to the Source.</p>
                             <div style="background: #1a1a22; padding: 15px 25px; border-radius: 4px; border: 1px solid #b87333; margin: 20px 0; font-size: 15px; text-align: left;">
                                 -> Orbs Collected: <strong>${orbsCollectedCount} / 20</strong><br>
                                 -> Time Remaining: <strong>${timeStr}</strong>
@@ -1063,7 +1063,7 @@ function transitionToLevel3() {
 
 
 // ==========================================
-// LEVEL 3: CORE STABILIZATION (Rapid Tapping)
+// LEVEL 3: RHYTHM HARMONIZATION
 // ==========================================
 const lvl3Canvas = document.getElementById("lvl3GameCanvas");
 const lvl3Ctx = lvl3Canvas ? lvl3Canvas.getContext("2d") : null;
@@ -1074,11 +1074,12 @@ if (lvl3Canvas) {
     });
 }
 
-const lvl3GameTimeLimit = 30; 
+const lvl3RoundTimes = [15, 20, 25, 30, 60]; 
 const lvl3MaxRounds = 5;
 
 let lvl3Round = 1;
 let lvl3StartTime;
+let lvl3GameTimeLimit = lvl3RoundTimes[0];
 let lvl3TimeRemaining = lvl3GameTimeLimit;
 let lvl3GameActive = false;
 let lvl3AnimationFrameId;
@@ -1107,6 +1108,7 @@ function startLevel3() {
     for (let key in keys) { keys[key] = false; }
     
     lvl3Round = 1;
+    lvl3GameTimeLimit = lvl3RoundTimes[0];
     lvl3AvgAccumulator = 0;
     lvl3Ticks = 0;
     
@@ -1115,6 +1117,8 @@ function startLevel3() {
 
 function startLvl3Round() {
     lvl3CoreRadius = 40;
+    lvl3GameTimeLimit = lvl3RoundTimes[lvl3Round - 1];
+    lvl3TimeRemaining = lvl3GameTimeLimit;
     lvl3StartTime = performance.now();
     lvl3GameActive = true;
     lvl3GameLoop();
@@ -1302,26 +1306,26 @@ function buildFinalStatSheet() {
 
     let impactDescription = "";
     if (validOrbs <= 5 && multiplier === 1.0) {
-        impactDescription = "The resulting discharge leaves behind a light, superficial mark (such as a minor scratch, scorch, or bruise) upon contact, draining only a whisper of your Essence to maintain.";
+        impactDescription = "leave behind a light, superficial mark (such as a minor scratch, scorch, or bruise) upon contact, draining only a whisper of your Essence to maintain.";
     } else if (validOrbs >= 16 && multiplier === 2.0) {
-        impactDescription = "The resulting discharge surges with devastating, catastrophic potential, entirely capable of shattering heavy armor or violently knocking a target off balance. A massive chunk of your Essence is consumed in the process, leaving you gasping and feeling heavily drained as a result.";
+        impactDescription = "surge with devastating, catastrophic potential, entirely capable of shattering heavy armor or violently knocking a target off balance. A massive chunk of your Essence is consumed in the process, leaving you gasping and feeling heavily drained as a result.";
     } else {
-        impactDescription = "The resulting discharge delivers a solid, forceful strike capable of fracturing standard defenses, leaving a noticeable impact as a moderate wave of fatigue settles into your muscles, drawing deeper from your Essence.";
+        impactDescription = "deliver a solid, forceful strike capable of fracturing standard defenses, leaving a noticeable impact as a moderate wave of fatigue settles into your muscles, drawing deeper from your Essence.";
     }
 
     let statHTML = `
 ============================================================<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SYNTHESIS COMPLETE<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DISCOVERY COMPLETE<br>
 ============================================================<br><br>
-Essence Stabilization Complete - Energy Signature Obtained:<br><br>
+Essence Stabilized - Energy Signature Obtained<br><br>
 Your Core Essence is ${elementDetail}.<br><br>
 Your Offensive Magic Power is ${powerName}.<br><br>
 Your understanding of this Power is ${coherenceName}, which means that ${coherenceDescription}.<br><br>
-Because of the Rhythm and Frequency of your emotional state, your emotional vibration ${vibrationText}, making the frequency of your ${powerName} have a ${accuracy}% chance of connecting an attack, when using this Offensive Magic Power.<br><br>
-Due to the density of this Energy's Core, you were able to obtain a total of ${finalDmg} DMG for ${powerName}, per hit.<br><br>
-${powerName} will consume ${drain}% of your total Essence, each time it is used.<br><br>
+Because of the Rhythm and Frequency of your emotional state, the vibration of your Essence is ${vibrationText}, and ${powerName} has a ${accuracy}% chance of connecting an attack, when used.<br><br>
+Due to the density of this Energy's Core, you were able to obtain a total of ${finalDmg} DMG for ${powerName}, per connected hit.<br><br>
+${powerName} will consume ${drain}% of your total Essence, each time it is used (regardless if it connects or not).<br><br>
 <strong>RP Application Example:</strong><br>
-*You channel your stabilized ${element} core, your expression locking into absolute focus as you draw the power directly into your hands. ${visualBuildup} Because of the Rhythm and Frequency of your emotional state, your emotional vibration ${vibrationText}. When you release **${powerName}**, it cuts straight through the space between you and your target. ${impactDescription}*<br>
+*You channel your stabilized ${element} core, your expression locking into absolute focus as you draw the power directly into your hands. ${visualBuildup} Because of the Rhythm and Frequency of your emotional state, your emotional vibration ${vibrationText}. When you release ${powerName}, it can ${impactDescription}*<br>
 ============================================================
     `;
     return statHTML;
@@ -1355,7 +1359,7 @@ function resetToLevel3Init() {
     
     if (lvl3Ctx) lvl3Ctx.clearRect(0, 0, lvl3Canvas.width, lvl3Canvas.height);
     
-    document.getElementById("lvl3TimerValue").innerText = "30.0";
+    document.getElementById("lvl3TimerValue").innerText = "15.0";
     document.getElementById("lvl3RoundValue").innerText = "1/5";
     document.getElementById("lvl3IntegrityValue").innerText = "STABLE";
     document.getElementById("lvl3IntegrityValue").style.color = "#00ffcc";
