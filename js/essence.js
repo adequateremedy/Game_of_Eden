@@ -1065,7 +1065,7 @@ if (lvl3Canvas) {
     });
 }
 
-const lvl3GameTimeLimit = 60; 
+const lvl3GameTimeLimit = 30; 
 const lvl3MaxRounds = 5;
 
 let lvl3Round = 1;
@@ -1321,7 +1321,7 @@ function resetToLevel3Init() {
     
     if (lvl3Ctx) lvl3Ctx.clearRect(0, 0, lvl3Canvas.width, lvl3Canvas.height);
     
-    document.getElementById("lvl3TimerValue").innerText = "60.0";
+    document.getElementById("lvl3TimerValue").innerText = "30.0";
     document.getElementById("lvl3RoundValue").innerText = "1/5";
     document.getElementById("lvl3IntegrityValue").innerText = "STABLE";
     document.getElementById("lvl3IntegrityValue").style.color = "#00ffcc";
