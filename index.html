@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Solus Dynasty RPG - Offensive Essence Development</title>
+<title>Solus Dynasty RPG - Offensive Essence Discovery</title>
 <link rel="stylesheet" href="css/essence.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
     <div id="background"></div>
 
     <div id="title-container">
-        <h1>Offensive Essence Development</h1>
+        <h1>Offensive Essence Discovery</h1>
     </div>
 
     <button id="start-btn" onclick="startGame()">Start</button>
@@ -22,17 +22,18 @@
     <!-- Popup Box -->
     <div id="popup-box">
         <div id="popup-content">
-            <p>The wheels of fate have started to turn, 
-and with it your emotions. 
-While you find most of them easy to navigate,
-others are much more challenging.
+            <p>Puberty triggered an imbalanced emotional vibration that manifested as an Energy, called Essence. 
+This Essence is bound by very specific Elemental Energy, that is identified by the Aura it holds. 
+Aura is the condensed emotion that displays as a specific color. 
+Each Essence Type is distinguished by it's Aura. 
+But knowing it exists is not enough; it must be understood before it can be wielded.
+To become "Coherent" and gain the necessary understanding required to manipulate your Essence as an Offensive Magic Power, you must stabilize the Essence so that it's Energy Signature can be identified. 
+You will need to:
+a. Stabilize the connection of you Essence to the Source.
+b. Sculpt the Frequency of your Essence.
+c. Establish a Rhythm for your Essence.
 
-In order for your Energy to acquire a "Signature",
-you will need to balance your emotions. 
-Unbalanced emotions causes fluctuations
-in Energy, that you will be unable to control.
-
-Once your Energy has a Signature, your Essence can be identified more specifically, and you can begin wielding it properly.</p>
+To begin, please select your Essence Type:</p>
             <button class="btn" onclick="fadeTextOut()">Ok</button>
         </div>
 
@@ -79,8 +80,10 @@ Aura is the built emotion that your Energy resonates with. The Essence you have 
     <!-- Second Separate Instruction Popup Box -->
     <div id="maze-instruction-box">
         <div id="maze-instruction-content">
-            <p>When your Essence moves, it vibrates. This Vibration can be visualized in Aura - as a color. Stabilized emotions give off a brighter Aura - proving that your Essence is able to maintain connection to the the original Source. 
-In order to establish that 'maintained connection' you must collect as many glowing, white, orbs as you can, and reach the center of the maze - before the timer runs out OR your Aura fades.</p>
+            <p>Source Stabilization
+
+Your Essence vibrates with life. Stabilized emotions give off a brighter Aura, proving that your Essence is maintaining its connection to the original Source.
+To maintain the connection for Level 1, you must collect as many glowing, white orbs as you can and reach the center of the labyrinth before the timer runs out OR your Aura fades.</p>
             <button class="btn" onclick="closeMazeInstructions()">Alright</button>
         </div>
     </div>
@@ -115,10 +118,11 @@ In order to establish that 'maintained connection' you must collect as many glow
         <div id="introScreen" class="screen-overlay">
             <h2 style="color: #00ffcc; margin-top:0;">FREQUENCY TUNING</h2>
             <p>
-                In order to stabilize the Frequency of this Energy, the Resonance Matrix must align your wavelength across three distinct layers of Reality.
-                You are tasked with calibrating your Frequency by catching the falling Frequency Blocks. You DO NOT need to catch all of them; simply catch what you feel is necessary to tune your wavelength.
+                Now that your connection to the Source is secure, you must move to the second application of Coherence: adjusting the Frequency of your Essence.
                 <br><br>
-                Collect "Pink Accelerator Blocks" to increase the vibration (+5.0 Hz) or "Brown Dampener Blocks" to decrease the vibration (-5.0 Hz). You must complete all three calibration cycles to proceed. Your Energy's final Frequency composition is entirely up to you.
+                You are tasked with calibrating your Essence Frequency across three cycles. You can adjust your Velocity (speed) by catching falling Frequency Blocks. You DO NOT need to catch all of them; simply catch what you feel is necessary to tune the Energy's Frequency wavelength.
+                <br><br>
+                Collect "Pink Accelerator Blocks" to increase your vibrational state (+5.0 Hz) - faster - or "Brown Dampener Blocks" to decrease your vibrational state (-5.0 Hz) - slower. Your Velocity carries continuously across all three rounds to determine your final Frequency composition.
             </p>
             <button onclick="startLevel2()">Initialize Matrix</button>
         </div>
@@ -134,7 +138,7 @@ In order to establish that 'maintained connection' you must collect as many glow
 
         <!-- Level 2 Results Screen -->
         <div id="resultsScreen" class="screen-overlay" style="display: none;">
-            <h2 style="color: #00ffcc; margin-top:0;">LEVEL 2: RESONANCE MATRIX RESULTS</h2>
+            <h2 style="color: #00ffcc; margin-top:0;">LEVEL 2: FREQUENCY CALIBRATION COMPLETE</h2>
             <div class="math-breakdown" id="mathDisplay" style="text-align: left; font-size: 15px; line-height: 1.8;">
                 <!-- Filled dynamically by script -->
             </div>
@@ -145,13 +149,13 @@ In order to establish that 'maintained connection' you must collect as many glow
 
 <!-- LEVEL 3 CONTAINER -->
 <div id="level3-container">
-    <h1>Core Stabilization</h1>
+    <h1>Level 3: Rhythm Harmonization</h1>
     
     <!-- Top HUD Container Area -->
     <div id="lvl3HudContainer">
-        <div class="lvl3-hud-item">Time Remaining: <span id="lvl3TimerValue" class="lvl3-hud-value">30.0</span>s</div>
+        <div class="lvl3-hud-item">Time Remaining: <span id="lvl3TimerValue" class="lvl3-hud-value">15.0</span>s</div>
         <div class="lvl3-hud-item">Round: <span id="lvl3RoundValue" class="lvl3-hud-value">1/5</span></div>
-        <div class="lvl3-hud-item">Core Integrity: <span id="lvl3IntegrityValue" class="lvl3-hud-value" style="color:#00ffcc;">STABLE</span></div>
+        <div class="lvl3-hud-item">Rhythm Integrity: <span id="lvl3IntegrityValue" class="lvl3-hud-value" style="color:#00ffcc;">STABLE</span></div>
     </div>
 
     <div id="lvl3GameContainer">
@@ -160,27 +164,29 @@ In order to establish that 'maintained connection' you must collect as many glow
         
         <!-- Onboarding Screen -->
         <div id="lvl3IntroScreen" class="lvl3-screen-overlay">
-            <h2 style="color: #ff3366; margin-top:0; letter-spacing:3px;">CORE CONTAINMENT</h2>
+            <h2 style="color: #ff3366; margin-top:0; letter-spacing:3px;">ESTABLISHING RHYTHM</h2>
             <p>
-                WARNING: VOLATILE ESSENCE DETECTED. Your raw Essence Core will naturally expand toward critical overload. 
+                You have stabilized your connection and tuned your frequency. Now comes the final act of Coherence: establishing a stable Rhythm in your Essence Core.
                 <br><br>
-                You must rapidly <strong>TAP THE SPACEBAR</strong> (or click the screen) to physically compress and stabilize the energy. This containment protocol spans 5 rigorous calibration rounds (30 seconds each). As the rounds progress, the core will resist containment with increasing violence.
+                Your raw Essence Core will naturally expand toward critical overload (emotional explosion). You must rapidly <strong>TAP THE SPACEBAR</strong> (or click the screen) to find and maintain a stable internal rhythm. This harmonization protocol spans 5 rounds (Round 1: 15s, Round 2: 20s, Round 3: 25s, Round 4: 30s, Round 5: 60s). As each round progresses, the Core will resist your rhythm with increasing pressure.
                 <br><br>
-                How you balance the core's density is your choice: forge it into a hyper-dense, devastating weapon (rapid tapping), or let it safely diffuse into a highly efficient flow (slow tapping). However, if it expands beyond its absolute limit, containment fails entirely.
+                How you balance your Essence's Core Density through Rhythm is your choice: forge it into a hyper-dense, or let it diffuse into a highly efficient flow (slow tapping).
+                <br><br>
+                Keep in mind - if it expands beyond its absolute limit, containment of the emotional state of this Essence's Core will fail entirely.
             </p>
-            <button onclick="startLevel3()">Begin Containment</button>
+            <button onclick="startLevel3()">Begin Harmonization</button>
         </div>
 
         <!-- Failure Screen -->
         <div id="lvl3FailureScreen" class="lvl3-screen-overlay" style="display: none;">
-            <div class="failure-title">CONTAINMENT FAILED</div>
+            <div class="failure-title">HARMONIZATION FAILED</div>
             <p style="color: #888; margin-bottom: 30px;">CRITICAL OVERLOAD: THE CORE EXCEEDED MAXIMUM CAPACITY</p>
-            <button onclick="resetToLevel3Init()">Restart Containment Protocol</button>
+            <button onclick="resetToLevel3Init()">Restart Harmonization Protocol</button>
         </div>
 
         <!-- Level 3 Results Screen -->
         <div id="lvl3ResultsScreen" class="lvl3-screen-overlay" style="display: none;">
-            <h2 style="color: #ff3366; margin-top:0; letter-spacing:2px;">LEVEL 3: CORE STABILITY RESULTS</h2>
+            <h2 style="color: #ff3366; margin-top:0; letter-spacing:2px;">LEVEL 3: RHYTHM HARMONIZATION RESULTS</h2>
             <div class="summary-box" id="lvl3SummaryDisplay" style="font-size: 16px; color: #fff; text-align: center; margin-bottom: 30px;">
                 <!-- Filled dynamically by runtime evaluation scripts -->
             </div>
@@ -189,7 +195,7 @@ In order to establish that 'maintained connection' you must collect as many glow
 
         <!-- Final Synthesis Complete Screen -->
         <div id="finalSynthesisScreen" class="lvl3-screen-overlay" style="display: none;">
-            <h2 style="color: #ff3366; margin-top:0; letter-spacing:2px;">SYNTHESIS COMPLETE</h2>
+            <h2 style="color: #ff3366; margin-top:0; letter-spacing:2px;">DISCOVERY COMPLETE</h2>
             <div class="summary-box" id="finalSynthesisDisplay" style="overflow-y: auto; max-height: 380px; font-size: 14px; line-height: 1.6; text-align: left; padding: 25px;">
                 <!-- Filled dynamically by runtime evaluation scripts -->
             </div>
