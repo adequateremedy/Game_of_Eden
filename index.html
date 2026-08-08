@@ -103,9 +103,10 @@ The velocity of your Essence Frequency establishes a baseline that you must scul
     
     <!-- External Top HUD Display -->
     <div id="hudContainer">
-        <div class="hud-item">Time Remaining: <span id="timerValue" class="hud-value">60.0</span>s</div>
-        <div class="hud-item">Pacing State: <span id="pacingValue" class="hud-value">Calculating...</span></div>
-        <div class="hud-item">Modifiers: <span id="modValue" class="hud-value">0.0 Hz</span></div>
+        <div class="hud-item">Time: <span id="timerValue" class="hud-value">60.0</span>s</div>
+        <div class="hud-item">Round: <span id="roundValue" class="hud-value">1/3</span></div>
+        <div class="hud-item">Pink Blocks: <span id="pinkValue" class="hud-value" style="color:#ff007f;">0</span></div>
+        <div class="hud-item">Brown Blocks: <span id="brownValue" class="hud-value" style="color:#8c5828;">0</span></div>
     </div>
 
     <div id="gameContainer">
@@ -113,10 +114,12 @@ The velocity of your Essence Frequency establishes a baseline that you must scul
         
         <!-- Onboarding Screen -->
         <div id="introScreen" class="screen-overlay">
-            <h2 style="color: #00ffcc; margin-top:0;">FREQUENCY TUNING PROMPT</h2>
+            <h2 style="color: #00ffcc; margin-top:0;">FREQUENCY TUNING</h2>
             <p>
-                For the next 60 seconds, the physical velocity of your Essence will be recorded, in order to establish the baseline wavelength of your Essence's Frequency. 
-                Collect "Pink Accelerator Blocks" to increase vibration (+5.0 Hz) or "Brown Dampener Blocks" to deep-tune the wavelength (-5.0 Hz). Your Energy's final Frequency composition is entirely up to you.
+                In order to stabilize the Frequency of this Energy, the Resonance Matrix must align your wavelength across three distinct layers of Reality.
+                You are tasked with catching the falling Frequency Blocks - 
+                Collect "Pink Accelerator Blocks" to increase the vibration (+5.0 Hz) of your wavelength 
+                or "Brown Dampener Blocks" to decrease the vibration (-5.0 Hz) of your wavelength. You must complete all three calibration cycles to proceed. Your Energy's final Frequency composition is entirely up to you.
             </p>
             <button onclick="startLevel2()">Initialize Matrix</button>
         </div>
