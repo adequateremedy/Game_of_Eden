@@ -11,7 +11,7 @@ window.playerStats = {
     finalVoltage: 0
 };
 
-const spellRegistry = {
+const powerRegistry = {
     'Agni': ["Flame Bolt", "Blazing Aura", "Heat Vision", "Scorching Chains", "Cinder Swarm", "Flame Forging", "Dragon Breath", "Combustion Burst", "Solar Flare", "Magma Touch", "Heat Absorption", "Pyrokinetic Flight", "Lava Manipulation", "Ember Step", "Inferno Wave", "Ash Cloak", "Firestorm", "Volcanic Eruption", "Phoenix Rebirth", "Eternal Flame"],
     'Jala': ["Water Jet", "Water Walking", "Aquatic Breathing", "Hydrokinetic Pull", "Rain Calling", "Crystal Ice Spears", "Ocean's Embrace", "Steam Burst", "Ice Shaping", "Frost Nova", "Whirlpool Creation", "Current Riding", "Purification", "Water Clone", "Glacial Prison", "Mist Form", "Healing Waters", "Tidal Wave", "Moon Tide Control", "Leviathan Summoning"],
     'Prithvi': ["Stone Skin", "Gem Sight", "Root Snare", "Vine Whips", "Thorn Barrage", "Boulder Launch", "Mud Control", "Wall of Earth", "Crystal Growth", "Nature's Healing", "Mountain Strength", "Crystal Armor", "Burrowing", "Living Forest", "Metal Shaping", "Earthquake", "Petrification", "Terrain Sculpting", "Land Renewal", "Titan's Awakening"],
@@ -742,99 +742,42 @@ function transitionToLevel2() {
 
 
 // ==========================================
-// LEVEL 2: FREQUENCY TUNING
+// LEVEL 2: FREQUENCY TUNING (Falling Blocks)
 // ==========================================
 
 const lvl2Canvas = document.getElementById("gameCanvas");
 const lvl2Ctx = lvl2Canvas ? lvl2Canvas.getContext("2d") : null;
 
-const lvl2Duration = 60;
-const lvl2TileSize = 40;
-const lvl2Cols = 20;
-const lvl2Rows = 10;
+const lvl2Duration = 60; 
+const lvl2MaxRounds = 3;
 
-const lvl2Player = {
-    x: 60,
-    y: 340,
-    radius: 12,
-    speed: 4,
-    color: "#00ffcc"
-};
-
+let lvl2Round = 1;
 let lvl2StartTime;
 let lvl2TimeRemaining = lvl2Duration;
 let lvl2GameActive = false;
 let lvl2AnimationFrameId;
 
+let lvl2Blocks = [];
+let lvl2Frames = 0;
+
 let lvl2TotalDistanceMoved = 0;
 let lvl2LastPlayerX = 0;
-let lvl2LastPlayerY = 0;
 let lvl2PinkCollected = 0;
 let lvl2BrownCollected = 0;
 
-let lvl2MazeGrid = [];
+// Trackers across 3 rounds
+let lvl2AccumulatedDistance = 0;
+let lvl2AccumulatedPink = 0;
+let lvl2AccumulatedBrown = 0;
 
-function generateLvl2Maze() {
-    lvl2MazeGrid = Array(lvl2Rows).fill().map(() => Array(lvl2Cols).fill(1));
-    
-    const stack = [];
-    const startC = 1;
-    const startR = lvl2Rows - 2;
-    lvl2MazeGrid[startR][startC] = 0;
-    stack.push([startR, startC]);
-
-    while (stack.length > 0) {
-        const [r, c] = stack[stack.length - 1];
-        const neighbors = [];
-
-        const directions = [[-2,0], [2,0], [0,-2], [0,2]];
-        for (let [dr, dc] of directions) {
-            const nr = r + dr;
-            const nc = c + dc;
-            if (nr > 0 && nr < lvl2Rows - 1 && nc > 0 && nc < lvl2Cols - 1) {
-                if (lvl2MazeGrid[nr][nc] === 1) {
-                    neighbors.push([nr, nc, dr, dc]);
-                }
-            }
-        }
-
-        if (neighbors.length > 0) {
-            const [nr, nc, dr, dc] = neighbors[Math.floor(Math.random() * neighbors.length)];
-            lvl2MazeGrid[r + dr/2][c + dc/2] = 0;
-            lvl2MazeGrid[nr][nc] = 0;
-            stack.push([nr, nc]);
-        } else {
-            stack.pop();
-        }
-    }
-
-    lvl2MazeGrid[8][1] = 0; lvl2MazeGrid[8][2] = 0; lvl2MazeGrid[7][1] = 0;
-
-    let openPaths = [];
-    for (let r = 1; r < lvl2Rows - 1; r++) {
-        for (let c = 1; c < lvl2Cols - 1; c++) {
-            if (lvl2MazeGrid[r][c] === 0 && !(c <= 2 && r >= 7)) {
-                openPaths.push({r, c});
-            }
-        }
-    }
-
-    openPaths.sort(() => Math.random() - 0.5);
-
-    for (let i = 0; i < 3; i++) {
-        if (openPaths.length > 0) {
-            let tile = openPaths.pop();
-            lvl2MazeGrid[tile.r][tile.c] = 2;
-        }
-    }
-
-    for (let i = 0; i < 4; i++) {
-        if (openPaths.length > 0) {
-            let tile = openPaths.pop();
-            lvl2MazeGrid[tile.r][tile.c] = 3;
-        }
-    }
-}
+const lvl2Player = {
+    x: 400,
+    y: 370,
+    width: 40,
+    height: 10,
+    speed: 7,
+    color: "#00ffcc"
+};
 
 function startLevel2() {
     if (selectedColorHex) {
@@ -848,15 +791,24 @@ function startLevel2() {
     
     for (let key in keys) { keys[key] = false; }
     
-    generateLvl2Maze();
+    lvl2Round = 1;
+    lvl2AccumulatedDistance = 0;
+    lvl2AccumulatedPink = 0;
+    lvl2AccumulatedBrown = 0;
     
-    lvl2Player.x = 60;
-    lvl2Player.y = 340;
+    startLvl2Round();
+}
+
+function startLvl2Round() {
+    lvl2Player.x = 400;
+    lvl2LastPlayerX = lvl2Player.x;
+    
+    lvl2Blocks = [];
+    lvl2Frames = 0;
+    
+    lvl2TotalDistanceMoved = 0;
     lvl2PinkCollected = 0;
     lvl2BrownCollected = 0;
-    lvl2TotalDistanceMoved = 0;
-    lvl2LastPlayerX = lvl2Player.x;
-    lvl2LastPlayerY = lvl2Player.y;
     
     lvl2StartTime = performance.now();
     lvl2GameActive = true;
@@ -864,51 +816,56 @@ function startLevel2() {
     lvl2GameLoop();
 }
 
-function checkLvl2Collision(nx, ny) {
-    const checkPoints = [
-        {x: nx - lvl2Player.radius, y: ny - lvl2Player.radius},
-        {x: nx + lvl2Player.radius, y: ny - lvl2Player.radius},
-        {x: nx - lvl2Player.radius, y: ny + lvl2Player.radius},
-        {x: nx + lvl2Player.radius, y: ny + lvl2Player.radius}
-    ];
-    
-    for (let p of checkPoints) {
-        const gridX = Math.floor(p.x / lvl2TileSize);
-        const gridY = Math.floor(p.y / lvl2TileSize);
-        if (gridX < 0 || gridX >= lvl2Cols || gridY < 0 || gridY >= lvl2Rows) return true;
-        if (lvl2MazeGrid[gridY][gridX] === 1) return true;
-    }
-    return false;
-}
-
 function updateLvl2PlayerLogic() {
     let nextX = lvl2Player.x;
-    let nextY = lvl2Player.y;
-    
-    if (keys["arrowup"] || keys["w"]) nextY -= lvl2Player.speed;
-    if (keys["arrowdown"] || keys["s"]) nextY += lvl2Player.speed;
-    if (!checkLvl2Collision(lvl2Player.x, nextY)) lvl2Player.y = nextY;
     
     if (keys["arrowleft"] || keys["a"]) nextX -= lvl2Player.speed;
     if (keys["arrowright"] || keys["d"]) nextX += lvl2Player.speed;
-    if (!checkLvl2Collision(nextX, lvl2Player.y)) lvl2Player.x = nextX;
     
-    let dist = Math.sqrt(Math.pow(lvl2Player.x - lvl2LastPlayerX, 2) + Math.pow(lvl2Player.y - lvl2LastPlayerY, 2));
+    // Bounds checking
+    if (nextX < 20) nextX = 20;
+    if (nextX > lvl2Canvas.width - 20) nextX = lvl2Canvas.width - 20;
+    
+    lvl2Player.x = nextX;
+    
+    let dist = Math.abs(lvl2Player.x - lvl2LastPlayerX);
     lvl2TotalDistanceMoved += dist;
     lvl2LastPlayerX = lvl2Player.x;
-    lvl2LastPlayerY = lvl2Player.y;
     
-    const currentGridX = Math.floor(lvl2Player.x / lvl2TileSize);
-    const currentGridY = Math.floor(lvl2Player.y / lvl2TileSize);
+    // Block spawning
+    lvl2Frames++;
+    if (lvl2Frames % 40 === 0) {
+        let isPink = Math.random() > 0.5;
+        lvl2Blocks.push({
+            x: Math.random() * (lvl2Canvas.width - 40) + 20,
+            y: -20,
+            type: isPink ? 2 : 3,
+            width: 20,
+            height: 20
+        });
+    }
     
-    if (currentGridY >= 0 && currentGridY < lvl2Rows && currentGridX >= 0 && currentGridX < lvl2Cols) {
-        const currentTile = lvl2MazeGrid[currentGridY][currentGridX];
-        if (currentTile === 2) { 
-            lvl2PinkCollected++;
-            lvl2MazeGrid[currentGridY][currentGridX] = 0; 
-        } else if (currentTile === 3) { 
-            lvl2BrownCollected++;
-            lvl2MazeGrid[currentGridY][currentGridX] = 0; 
+    // Block logic
+    for (let i = lvl2Blocks.length - 1; i >= 0; i--) {
+        let b = lvl2Blocks[i];
+        b.y += 3.5; 
+        
+        // Collision check
+        if (
+            b.x < lvl2Player.x + lvl2Player.width/2 &&
+            b.x + b.width > lvl2Player.x - lvl2Player.width/2 &&
+            b.y < lvl2Player.y + lvl2Player.height/2 &&
+            b.y + b.height > lvl2Player.y - lvl2Player.height/2
+        ) {
+            if (b.type === 2) lvl2PinkCollected++;
+            else lvl2BrownCollected++;
+            
+            lvl2Blocks.splice(i, 1);
+            continue;
+        }
+        
+        if (b.y > lvl2Canvas.height) {
+            lvl2Blocks.splice(i, 1);
         }
     }
 }
@@ -918,84 +875,87 @@ function drawLvl2Screen() {
     
     lvl2Ctx.clearRect(0, 0, lvl2Canvas.width, lvl2Canvas.height);
     
-    for (let r = 0; r < lvl2Rows; r++) {
-        for (let c = 0; c < lvl2Cols; c++) {
-            let tx = c * lvl2TileSize;
-            let ty = r * lvl2TileSize;
-            
-            if (lvl2MazeGrid[r][c] === 1) {
-                lvl2Ctx.fillStyle = "#1e1e24";
-                lvl2Ctx.fillRect(tx, ty, lvl2TileSize, lvl2TileSize);
-                lvl2Ctx.strokeStyle = "#2d2d35";
-                lvl2Ctx.strokeRect(tx, ty, lvl2TileSize, lvl2TileSize);
-            } else if (lvl2MazeGrid[r][c] === 2) {
-                lvl2Ctx.fillStyle = "#ff007f";
-                lvl2Ctx.fillRect(tx, ty, lvl2TileSize, lvl2TileSize);
-                lvl2Ctx.fillStyle = "#000000";
-                lvl2Ctx.beginPath();
-                lvl2Ctx.moveTo(tx + lvl2TileSize/2, ty + 8);
-                lvl2Ctx.lineTo(tx + 8, ty + lvl2TileSize - 8);
-                lvl2Ctx.lineTo(tx + lvl2TileSize - 8, ty + lvl2TileSize - 8);
-                lvl2Ctx.closePath();
-                lvl2Ctx.fill();
-            } else if (lvl2MazeGrid[r][c] === 3) {
-                lvl2Ctx.fillStyle = "#4a2c11";
-                lvl2Ctx.fillRect(tx, ty, lvl2TileSize, lvl2TileSize);
-                lvl2Ctx.strokeStyle = "#8c5828";
-                lvl2Ctx.lineWidth = 3;
-                lvl2Ctx.beginPath();
-                lvl2Ctx.moveTo(tx + 5, ty + 15);
-                lvl2Ctx.bezierCurveTo(tx + 15, ty + 5, tx + 25, ty + 25, tx + 35, ty + 15);
-                lvl2Ctx.moveTo(tx + 5, ty + 25);
-                lvl2Ctx.bezierCurveTo(tx + 15, ty + 15, tx + 25, ty + 35, tx + 35, ty + 25);
-                lvl2Ctx.stroke();
-            }
+    // Draw Blocks
+    for (let b of lvl2Blocks) {
+        if (b.type === 2) {
+            // Pink Accelerator
+            lvl2Ctx.fillStyle = "#ff007f";
+            lvl2Ctx.fillRect(b.x, b.y, b.width, b.height);
+            lvl2Ctx.fillStyle = "#000000";
+            lvl2Ctx.beginPath();
+            lvl2Ctx.moveTo(b.x + b.width/2, b.y + 4);
+            lvl2Ctx.lineTo(b.x + 4, b.y + b.height - 4);
+            lvl2Ctx.lineTo(b.x + b.width - 4, b.y + b.height - 4);
+            lvl2Ctx.closePath();
+            lvl2Ctx.fill();
+        } else {
+            // Brown Dampener
+            lvl2Ctx.fillStyle = "#4a2c11";
+            lvl2Ctx.fillRect(b.x, b.y, b.width, b.height);
+            lvl2Ctx.strokeStyle = "#8c5828";
+            lvl2Ctx.lineWidth = 2;
+            lvl2Ctx.beginPath();
+            lvl2Ctx.moveTo(b.x + 2, b.y + 7);
+            lvl2Ctx.bezierCurveTo(b.x + 8, b.y + 2, b.x + 12, b.y + 12, b.x + 18, b.y + 7);
+            lvl2Ctx.moveTo(b.x + 2, b.y + 13);
+            lvl2Ctx.bezierCurveTo(b.x + 8, b.y + 8, b.x + 12, b.y + 18, b.x + 18, b.y + 13);
+            lvl2Ctx.stroke();
         }
     }
     
-    lvl2Ctx.beginPath();
-    lvl2Ctx.arc(lvl2Player.x, lvl2Player.y, lvl2Player.radius, 0, Math.PI * 2);
+    // Draw Player Paddle
     lvl2Ctx.fillStyle = lvl2Player.color;
-    lvl2Ctx.shadowBlur = 12;
+    lvl2Ctx.shadowBlur = 10;
     lvl2Ctx.shadowColor = lvl2Player.color;
-    lvl2Ctx.fill();
-    lvl2Ctx.shadowBlur = 0; 
+    lvl2Ctx.fillRect(lvl2Player.x - lvl2Player.width/2, lvl2Player.y - lvl2Player.height/2, lvl2Player.width, lvl2Player.height);
+    lvl2Ctx.shadowBlur = 0;
 }
 
-function updateLvl2HUD(liveBaseline, currentMod) {
+function updateLvl2HUD() {
     document.getElementById("timerValue").innerText = Math.max(0, lvl2TimeRemaining).toFixed(1);
-    
-    let pacingString = "Low (Calm)";
-    if (liveBaseline > 85) pacingString = "High (Aggressive)";
-    else if (liveBaseline > 72) pacingString = "Medium (Active)";
-    
-    document.getElementById("pacingValue").innerText = `${pacingString} [${liveBaseline.toFixed(1)} Hz]`;
-    
-    let modSign = currentMod >= 0 ? "+" : "";
-    document.getElementById("modValue").innerText = `${modSign}${currentMod.toFixed(1)} Hz`;
+    document.getElementById("roundValue").innerText = `${lvl2Round}/${lvl2MaxRounds}`;
+    document.getElementById("pinkValue").innerText = lvl2PinkCollected;
+    document.getElementById("brownValue").innerText = lvl2BrownCollected;
 }
 
-function calculateLvl2Metrics() {
-    let movementRatio = Math.min(1, lvl2TotalDistanceMoved / 9000);
+function handleLvl2RoundEnd() {
+    lvl2GameActive = false;
+    cancelAnimationFrame(lvl2AnimationFrameId);
+    
+    lvl2AccumulatedDistance += lvl2TotalDistanceMoved;
+    lvl2AccumulatedPink += lvl2PinkCollected;
+    lvl2AccumulatedBrown += lvl2BrownCollected;
+    
+    if (lvl2Round < lvl2MaxRounds) {
+        lvl2Round++;
+        startLvl2Round();
+    } else {
+        handleLvl2FinalComplete();
+    }
+}
+
+function calculateLvl2FinalMetrics() {
+    let avgDistance = lvl2AccumulatedDistance / lvl2MaxRounds;
+    let avgPink = lvl2AccumulatedPink / lvl2MaxRounds;
+    let avgBrown = lvl2AccumulatedBrown / lvl2MaxRounds;
+    
+    let movementRatio = Math.min(1, avgDistance / 9000);
     let baselineHz = 60.0 + (movementRatio * 40.0);
-    let modifierHz = (lvl2PinkCollected * 5.0) - (lvl2BrownCollected * 5.0);
+    let modifierHz = (avgPink * 5.0) - (avgBrown * 5.0);
     let finalHz = baselineHz + modifierHz;
     
     if (finalHz < 40) finalHz = 40;
     if (finalHz > 120) finalHz = 120;
     
-    return { baselineHz, modifierHz, finalHz };
+    return { baselineHz, avgPink, avgBrown, modifierHz, finalHz };
 }
 
-function handleLvl2Complete() {
-    lvl2GameActive = false;
-    cancelAnimationFrame(lvl2AnimationFrameId);
-    
-    const scores = calculateLvl2Metrics();
+function handleLvl2FinalComplete() {
+    const scores = calculateLvl2FinalMetrics();
     window.playerStats.finalHz = scores.finalHz; 
     
     document.getElementById("hzDisplay").innerText = scores.finalHz.toFixed(2) + " Hz";
-    document.getElementById("mathDisplay").innerHTML = `<strong>CALIBRATION SUMMARY:</strong><br> Baseline Pacing Signature: ${scores.baselineHz.toFixed(1)} Hz<br> Pink Node Modifier (${lvl2PinkCollected} collected): +${(lvl2PinkCollected * 5.0).toFixed(1)} Hz<br> Brown Node Modifier (${lvl2BrownCollected} collected): -${(lvl2BrownCollected * 5.0).toFixed(1)} Hz<br> <span style="color:#00ffcc;">Formula: ${scores.baselineHz.toFixed(1)} + ${(lvl2PinkCollected * 5.0).toFixed(1)} - ${(lvl2BrownCollected * 5.0).toFixed(1)} = ${scores.finalHz.toFixed(2)} Hz</span>`;
+    document.getElementById("mathDisplay").innerHTML = `<strong>CALIBRATION SUMMARY:</strong><br> Baseline Pacing Signature: ${scores.baselineHz.toFixed(1)} Hz<br> Pink Node Modifier (Avg ${scores.avgPink.toFixed(1)}): +${(scores.avgPink * 5.0).toFixed(1)} Hz<br> Brown Node Modifier (Avg ${scores.avgBrown.toFixed(1)}): -${(scores.avgBrown * 5.0).toFixed(1)} Hz<br> <span style="color:#00ffcc;">Formula: ${scores.baselineHz.toFixed(1)} + ${(scores.avgPink * 5.0).toFixed(1)} - ${(scores.avgBrown * 5.0).toFixed(1)} = ${scores.finalHz.toFixed(2)} Hz</span>`;
     
     document.getElementById("resultsScreen").style.display = "flex";
 }
@@ -1007,15 +967,13 @@ function lvl2GameLoop() {
     lvl2TimeRemaining = lvl2Duration - elapsed;
     
     if (lvl2TimeRemaining <= 0) {
-        handleLvl2Complete();
+        handleLvl2RoundEnd();
         return;
     }
     
     updateLvl2PlayerLogic();
     drawLvl2Screen();
-    
-    const currentLiveStats = calculateLvl2Metrics();
-    updateLvl2HUD(currentLiveStats.baselineHz, currentLiveStats.modifierHz);
+    updateLvl2HUD();
     
     lvl2AnimationFrameId = requestAnimationFrame(lvl2GameLoop);
 }
@@ -1303,22 +1261,19 @@ function buildFinalStatSheet() {
     
     const element = stats.element || "Agni";
     const aura = stats.auraColor || "Red Aura";
-    const spellName = spellRegistry[element][validOrbs - 1];
+    const powerName = powerRegistry[element][validOrbs - 1];
     
     let hzProfile = "";
     let hzText = "";
     if (hz <= 60.0) {
-        hzProfile = "Escalating Delivery";
-        hzText = `Due to a low-frequency signature of ${hz.toFixed(1)} Hz, energy pools slowly over time, building intense force the longer you refrain from firing.`;
+        hzProfile = "Calm";
+        hzText = `Due to a low-frequency signature of ${hz.toFixed(1)} Hz, the emotion that triggers your <strong>[${powerName}]</strong> is Calm. Use of this power carries a 75% accuracy, because the emotion itself is highly focused and deeply rooted.`;
     } else if (hz <= 100.0) {
-        hzProfile = "Equilibrium Delivery";
-        hzText = `Due to a stable-frequency signature of ${hz.toFixed(1)} Hz, energy tracks at standard stability with power metrics remaining fixed across usage states.`;
-    } else if (hz <= 120.0) {
-        hzProfile = "Volatile Burst Delivery";
-        hzText = `Due to a high-frequency signature of ${hz.toFixed(1)} Hz, the structures spin up instantly but suffer high decay factors if held.`;
+        hzProfile = "Steady";
+        hzText = `Due to a balanced-frequency signature of ${hz.toFixed(1)} Hz, the emotion that triggers your <strong>[${powerName}]</strong> is Steady. Use of this power carries a 50% accuracy, because the emotion provides a standard, controlled flow.`;
     } else {
-        hzProfile = "Rapid Response Kinetic";
-        hzText = `Due to an ultra-high frequency signature of ${hz.toFixed(1)} Hz, rapid generation speeds allow for near-instant execution with lighter direct pressure.`;
+        hzProfile = "Erratic";
+        hzText = `Due to a high-frequency signature of ${hz.toFixed(1)} Hz, the emotion that triggers your <strong>[${powerName}]</strong> is Erratic. Use of this power carries a 25% accuracy, because the emotion itself is wild, unstable, and unreliable.`;
     }
     
     let vProfile = "";
@@ -1348,12 +1303,12 @@ function buildFinalStatSheet() {
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AMPLITUDE SYNTHESIS FINALIZED<br>
 ============================================================<br>
  CORE ELEMENT SELECTION : ${element.toUpperCase()} (${aura} Bound)<br>
- SPELL ARCHETYPE LOCKED : ${spellName.toUpperCase()} (${stats.orbsCollected} Orbs Logged)<br>
+ OFFENSIVE MAGIC POWER LOCKED : ${powerName.toUpperCase()} (${stats.orbsCollected} Orbs Logged)<br>
  RESONANCE ASSIGNMENT&nbsp;&nbsp; : ${hz.toFixed(1)} Hz (${hzProfile})<br>
  AMPLITUDE COEFFICIENT&nbsp; : ${v.toFixed(1)} V (${vProfile})<br>
 <br>
  STRUCTURAL LOGIC RECORD:<br>
- "Subject harnesses the ${tier} technique [${spellName}], drawing <br>
+ "Subject harnesses the ${tier} Offensive Magic Power [${powerName}], drawing <br>
  ${flavorFlav[element]}. <br>
 <br>
  ${hzText} <br>
