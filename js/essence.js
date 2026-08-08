@@ -8,7 +8,7 @@ window.playerStats = {
     auraColor: "",
     orbsCollected: 0,
     finalHz: 0,
-    finalVoltage: 0
+    lvl3AvgRadius: 0
 };
 
 const powerRegistry = {
@@ -125,6 +125,13 @@ window.addEventListener('keydown', (e) => {
         e.preventDefault();
     }
     keys[e.key.toLowerCase()] = true;
+    
+    // Level 3 Rapid Tap Integration
+    if (e.code === 'Space') {
+        if (typeof lvl3Tap === 'function' && !e.repeat) {
+            lvl3Tap();
+        }
+    }
 });
 
 window.addEventListener('keyup', (e) => {
@@ -1046,72 +1053,41 @@ function transitionToLevel3() {
 
 
 // ==========================================
-// LEVEL 3: AMPLITUDE SYNTHESIS (Power Structure)
+// LEVEL 3: CORE STABILIZATION (Rapid Tapping)
 // ==========================================
 const lvl3Canvas = document.getElementById("lvl3GameCanvas");
 const lvl3Ctx = lvl3Canvas ? lvl3Canvas.getContext("2d") : null;
 
+// Bind Click Event
+if (lvl3Canvas) {
+    lvl3Canvas.addEventListener('mousedown', () => {
+        if (lvl3GameActive) lvl3Tap();
+    });
+}
+
 const lvl3GameTimeLimit = 60; 
-let lvl3AnimationFrameId;
-let lvl3GameActive = false;
+const lvl3MaxRounds = 5;
 
-const lvl3Player = {
-    x: 400,
-    y: 400,
-    radius: 11,
-    speed: 5,
-    stability: 100,
-    color: "#ff3366"
-};
-
-const p1 = { x: 400, y: 40 };
-const p2 = { x: 80,  y: 410 };
-const p3 = { x: 720, y: 410 };
-
-const rods = [
-    { id: 0, x: p1.x, y: p1.y + 30, active: false, radius: 25 }, 
-    { id: 1, x: p2.x + 35, y: p2.y - 20, active: false, radius: 25 }, 
-    { id: 2, x: p3.x - 35, y: p3.y - 20, active: false, radius: 25 }  
-];
-
+let lvl3Round = 1;
 let lvl3StartTime;
 let lvl3TimeRemaining = lvl3GameTimeLimit;
-let currentActiveRodIndex = -1;
-let rodSwitchTimer = 0;
+let lvl3GameActive = false;
+let lvl3AnimationFrameId;
 
-let activeDistanceTraveled = 0;
-let lvl3LastPlayerX = 0;
-let lvl3LastPlayerY = 0;
-let activeRodAbsorptionTicks = 0;
+// Mechanics Data
+let lvl3CoreRadius = 40;
+const lvl3MaxRadius = 200; 
+const lvl3TapCompression = 15.0; 
 
-let anomalies = [];
+// Trackers
+let lvl3AvgAccumulator = 0;
+let lvl3Ticks = 0;
 
-function isPointInTriangle(pt, v1, v2, v3) {
-    let d1 = (pt.x - v2.x) * (v1.y - v2.y) - (v1.x - v2.x) * (pt.y - v2.y);
-    let d2 = (pt.x - v3.x) * (v2.y - v3.y) - (v2.x - v3.x) * (pt.y - v3.y);
-    let d3 = (pt.x - v1.x) * (v3.y - v1.y) - (v3.x - v1.x) * (pt.y - v1.y);
-    
-    let has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-    let has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
-    return !(has_neg && has_pos);
-}
-
-function spawnAnomalies() {
-    anomalies = [];
-    for(let i=0; i<4; i++) {
-        anomalies.push({
-            x: 400,
-            y: 220,
-            vx: (Math.random() - 0.5) * 7,
-            vy: (Math.random() - 0.5) * 7,
-            radius: 8
-        });
-    }
-}
+let lvl3ElementColor = "#ff3366";
 
 function startLevel3() {
     if (selectedColorHex) {
-        lvl3Player.color = selectedColorHex;
+        lvl3ElementColor = selectedColorHex;
     }
 
     playAudio('assets/Voltz.mp3');
@@ -1122,80 +1098,42 @@ function startLevel3() {
     
     for (let key in keys) { keys[key] = false; }
     
-    lvl3Player.x = 400;
-    lvl3Player.y = 350;
-    lvl3Player.stability = 100;
-    activeDistanceTraveled = 0;
-    activeRodAbsorptionTicks = 0;
-    lvl3LastPlayerX = lvl3Player.x;
-    lvl3LastPlayerY = lvl3Player.y;
+    lvl3Round = 1;
+    lvl3AvgAccumulator = 0;
+    lvl3Ticks = 0;
     
-    spawnAnomalies();
-    currentActiveRodIndex = Math.floor(Math.random() * 3);
-    rods.forEach((r, idx) => r.active = (idx === currentActiveRodIndex));
-    rodSwitchTimer = 0;
-    
+    startLvl3Round();
+}
+
+function startLvl3Round() {
+    lvl3CoreRadius = 40;
     lvl3StartTime = performance.now();
     lvl3GameActive = true;
     lvl3GameLoop();
 }
 
+function lvl3Tap() {
+    if (!lvl3GameActive) return;
+    lvl3CoreRadius -= lvl3TapCompression;
+    if (lvl3CoreRadius < 15) lvl3CoreRadius = 15; 
+}
+
 function updateLvl3SimulationLogic() {
-    let nextX = lvl3Player.x;
-    let nextY = lvl3Player.y;
+    // Escalate difficulty based on round
+    let expansionRates = [0.5, 0.8, 1.1, 1.5, 2.0];
+    let currentExpansionRate = expansionRates[lvl3Round - 1];
     
-    if (keys["arrowup"] || keys["w"]) nextY -= lvl3Player.speed;
-    if (keys["arrowdown"] || keys["s"]) nextY += lvl3Player.speed;
-    if (keys["arrowleft"] || keys["a"]) nextX -= lvl3Player.speed;
-    if (keys["arrowright"] || keys["d"]) nextX += lvl3Player.speed;
+    lvl3CoreRadius += currentExpansionRate;
     
-    if (isPointInTriangle({x: nextX, y: nextY}, p1, p2, p3)) {
-        lvl3Player.x = nextX;
-        lvl3Player.y = nextY;
-    }
-    
-    let deltaMove = Math.sqrt(Math.pow(lvl3Player.x - lvl3LastPlayerX, 2) + Math.pow(lvl3Player.y - lvl3LastPlayerY, 2));
-    activeDistanceTraveled += deltaMove;
-    lvl3LastPlayerX = lvl3Player.x;
-    lvl3LastPlayerY = lvl3Player.y;
-    
-    rodSwitchTimer += 1/60;
-    if (rodSwitchTimer >= 4.0) {
-        rodSwitchTimer = 0;
-        currentActiveRodIndex = (currentActiveRodIndex + Math.floor(Math.random() * 2) + 1) % 3;
-        rods.forEach((r, idx) => r.active = (idx === currentActiveRodIndex));
-    }
-    
-    let targetRod = rods[currentActiveRodIndex];
-    let distToRod = Math.sqrt(Math.pow(lvl3Player.x - targetRod.x, 2) + Math.pow(lvl3Player.y - targetRod.y, 2));
-    if (distToRod <= targetRod.radius + lvl3Player.radius + 15) {
-        activeRodAbsorptionTicks++;
-    }
-    
-    anomalies.forEach(anom => {
-        let nextAnomX = anom.x + anom.vx;
-        let nextAnomY = anom.y + anom.vy;
-        
-        if (!isPointInTriangle({x: nextAnomX, y: nextAnomY}, p1, p2, p3)) {
-            anom.vx *= -1;
-            anom.vy *= -1;
-            anom.x += anom.vx;
-            anom.y += anom.vy;
-        } else {
-            anom.x = nextAnomX;
-            anom.y = nextAnomY;
-        }
-        
-        let distToPlayer = Math.sqrt(Math.pow(lvl3Player.x - anom.x, 2) + Math.pow(lvl3Player.y - anom.y, 2));
-        if (distToPlayer < lvl3Player.radius + anom.radius) {
-            lvl3Player.stability -= 0.65; 
-        }
-    });
-    
-    if (lvl3Player.stability <= 0) {
-        lvl3Player.stability = 0;
+    // Fail check
+    if (lvl3CoreRadius >= lvl3MaxRadius) {
         handleLvl3Failure();
+        return;
     }
+    
+    // Track stats continuously
+    lvl3AvgAccumulator += lvl3CoreRadius;
+    lvl3Ticks++;
 }
 
 function drawLvl3Graphics() {
@@ -1203,82 +1141,54 @@ function drawLvl3Graphics() {
     
     lvl3Ctx.clearRect(0, 0, lvl3Canvas.width, lvl3Canvas.height);
     
-    lvl3Ctx.strokeStyle = "#22222a";
-    lvl3Ctx.lineWidth = 3;
+    const cx = lvl3Canvas.width / 2;
+    const cy = lvl3Canvas.height / 2;
+    
+    // Draw the pulsating core
     lvl3Ctx.beginPath();
-    lvl3Ctx.moveTo(p1.x, p1.y);
-    lvl3Ctx.lineTo(p2.x, p2.y);
-    lvl3Ctx.lineTo(p3.x, p3.y);
-    lvl3Ctx.closePath();
-    lvl3Ctx.stroke();
-    
-    rods.forEach(rod => {
-        lvl3Ctx.beginPath();
-        lvl3Ctx.arc(rod.x, rod.y, rod.radius, 0, Math.PI * 2);
-        if (rod.active) {
-            lvl3Ctx.fillStyle = "rgba(255, 51, 102, 0.2)";
-            lvl3Ctx.fill();
-            lvl3Ctx.strokeStyle = "#ff3366";
-            lvl3Ctx.lineWidth = 2;
-            lvl3Ctx.shadowBlur = 15;
-            lvl3Ctx.shadowColor = "#ff3366";
-            lvl3Ctx.stroke();
-            lvl3Ctx.shadowBlur = 0;
-        } else {
-            lvl3Ctx.fillStyle = "#14141c";
-            lvl3Ctx.fill();
-            lvl3Ctx.strokeStyle = "#333344";
-            lvl3Ctx.lineWidth = 1;
-            lvl3Ctx.stroke();
-        }
-        
-        lvl3Ctx.beginPath();
-        lvl3Ctx.arc(rod.x, rod.y, 4, 0, Math.PI * 2);
-        lvl3Ctx.fillStyle = rod.active ? "#ff3366" : "#444";
-        lvl3Ctx.fill();
-    });
-    
-    anomalies.forEach(anom => {
-        lvl3Ctx.beginPath();
-        lvl3Ctx.arc(anom.x, anom.y, anom.radius, 0, Math.PI * 2);
-        lvl3Ctx.fillStyle = "#00ffcc";
-        lvl3Ctx.shadowBlur = 8;
-        lvl3Ctx.shadowColor = "#00ffcc";
-        lvl3Ctx.fill();
-        lvl3Ctx.shadowBlur = 0;
-    });
-    
-    lvl3Ctx.beginPath();
-    lvl3Ctx.arc(lvl3Player.x, lvl3Player.y, lvl3Player.radius, 0, Math.PI * 2);
-    lvl3Ctx.fillStyle = lvl3Player.color;
-    lvl3Ctx.shadowBlur = 12;
-    lvl3Ctx.shadowColor = lvl3Player.color;
+    lvl3Ctx.arc(cx, cy, lvl3CoreRadius, 0, Math.PI * 2);
+    lvl3Ctx.fillStyle = lvl3ElementColor;
+    lvl3Ctx.shadowBlur = 30 + (lvl3CoreRadius * 0.2);
+    lvl3Ctx.shadowColor = lvl3ElementColor;
     lvl3Ctx.fill();
     lvl3Ctx.shadowBlur = 0;
-}
-
-function calculateVoltageOutput() {
-    let velocityRatio = Math.min(1, activeDistanceTraveled / 9500);
-    let baseVoltage = 50.0 + (velocityRatio * 40.0);
     
-    let surgeAddition = (activeRodAbsorptionTicks / 60) * 2.2;
-    let finalVoltage = baseVoltage + surgeAddition;
-    
-    if (finalVoltage > 120.0) finalVoltage = 120.0;
-    if (finalVoltage < 40.0) finalVoltage = 40.0;
-    
-    return { baseVoltage, surgeAddition, finalVoltage };
-}
-
-function updateLvl3HUDMetrics(liveVoltage) {
-    document.getElementById("lvl3TimerValue").innerText = Math.max(0, lvl3TimeRemaining).toFixed(1);
-    document.getElementById("stabilityBar").style.width = lvl3Player.stability + "%";
-    document.getElementById("voltageValue").innerText = liveVoltage.toFixed(1) + " V";
-    
-    if (lvl3Player.stability < 35) {
-        document.getElementById("stabilityBar").style.backgroundColor = "#ff3366";
+    // Dynamic Vignette (Red glow when close to failing)
+    const vignette = document.getElementById("lvl3Vignette");
+    if (lvl3CoreRadius > 150) {
+        let threatLevel = (lvl3CoreRadius - 150) / 50; // 0 to 1
+        vignette.style.boxShadow = `inset 0 0 ${200 * threatLevel}px rgba(255, 0, 0, ${threatLevel * 0.8})`;
     } else {
-        document.getElementById("stabilityBar").style.backgroundColor = "#00ffcc";
+        vignette.style.boxShadow = `inset 0 0 0px rgba(255, 0, 0, 0)`;
+    }
+}
+
+function updateLvl3HUDMetrics() {
+    document.getElementById("lvl3TimerValue").innerText = Math.max(0, lvl3TimeRemaining).toFixed(1);
+    document.getElementById("lvl3RoundValue").innerText = `${lvl3Round}/5`;
+    
+    const integrityLabel = document.getElementById("lvl3IntegrityValue");
+    if (lvl3CoreRadius > 175) {
+        integrityLabel.innerText = "CRITICAL";
+        integrityLabel.style.color = "#ff3366";
+    } else if (lvl3CoreRadius > 120) {
+        integrityLabel.innerText = "FLUCTUATING";
+        integrityLabel.style.color = "#ffcc00";
+    } else {
+        integrityLabel.innerText = "STABLE";
+        integrityLabel.style.color = "#00ffcc";
+    }
+}
+
+function handleLvl3RoundEnd() {
+    lvl3GameActive = false;
+    cancelAnimationFrame(lvl3AnimationFrameId);
+    
+    if (lvl3Round < lvl3MaxRounds) {
+        lvl3Round++;
+        startLvl3Round();
+    } else {
+        handleLvl3Complete();
     }
 }
 
@@ -1291,66 +1201,84 @@ function handleLvl3Failure() {
 function buildFinalStatSheet() {
     const stats = window.playerStats;
     const hz = stats.finalHz;
-    const v = stats.finalVoltage;
     
+    // LEVEL 1: Base DMG Data
     let validOrbs = stats.orbsCollected;
     if (validOrbs < 1) validOrbs = 1;
     if (validOrbs > 20) validOrbs = 20;
     
     const element = stats.element || "Agni";
-    const aura = stats.auraColor || "Red Aura";
     const powerName = powerRegistry[element][validOrbs - 1];
+    const baseDmg = validOrbs * 5; 
     
+    // LEVEL 2: Accuracy Data
     let hzProfile = "";
-    let hzText = "";
+    let accuracy = 0;
+    let accuracyReason = "";
+    
     if (hz <= 70.0) {
         hzProfile = "Calm";
-        hzText = `Due to a low-frequency signature of ${hz.toFixed(1)} Hz, the emotion that triggers your <strong>[${powerName}]</strong> is Calm. Use of this power carries a 75% accuracy, because the emotion itself is highly focused and deeply rooted.`;
+        accuracy = 75;
+        accuracyReason = "highly focused and deeply rooted emotion";
     } else if (hz <= 95.0) {
         hzProfile = "Steady";
-        hzText = `Due to a balanced-frequency signature of ${hz.toFixed(1)} Hz, the emotion that triggers your <strong>[${powerName}]</strong> is Steady. Use of this power carries a 50% accuracy, because the emotion provides a standard, controlled flow.`;
+        accuracy = 50;
+        accuracyReason = "standard, controlled flow";
     } else {
         hzProfile = "Erratic";
-        hzText = `Due to a high-frequency signature of ${hz.toFixed(1)} Hz, the emotion that triggers your <strong>[${powerName}]</strong> is Erratic. Use of this power carries a 25% accuracy, because the emotion itself is wild, unstable, and unreliable.`;
+        accuracy = 25;
+        accuracyReason = "wild, unstable, and unreliable emotion";
     }
     
-    let vProfile = "";
-    let vText = "";
-    if (v < 70.0) {
-        vProfile = "Dense Core Profile";
-        vText = `The ${v.toFixed(1)}V amplitude calibration condenses the baseline metrics, providing an exceptionally high minimum damage floor so the elemental attack never hits softly.`;
-    } else if (v < 100.0) {
-        vProfile = "Standard Profile";
-        vText = `The ${v.toFixed(1)}V amplitude calibration provides a balanced structural scale, maintaining standard impact rules against targets.`;
+    // LEVEL 3: Multiplier and Drain Data
+    let avgRadius = stats.lvl3AvgRadius;
+    let densityLabel = "";
+    let multiplier = 1.0;
+    let drain = 5;
+    let maxCasts = 20;
+    
+    if (avgRadius <= 80) {
+        densityLabel = "Hyper-Dense Core (Inner Tier)";
+        multiplier = 2.0;
+        drain = 20;
+        maxCasts = 5;
+    } else if (avgRadius <= 140) {
+        densityLabel = "Standard Core (Middle Tier)";
+        multiplier = 1.5;
+        drain = 10;
+        maxCasts = 10;
     } else {
-        vProfile = "Surge Threat Multiplier";
-        vText = `The ${v.toFixed(1)}V amplitude calibration grants massive energy spikes, introducing volatile critical multipliers to terminal output.`;
+        densityLabel = "Diffused Core (Outer Tier)";
+        multiplier = 1.0;
+        drain = 5;
+        maxCasts = 20;
     }
     
-    let flavorFlav = {
-        'Agni': 'combustive energies out of the surrounding thermal field',
-        'Jala': 'fluid dynamics out of atmospheric moisture and localized water sources',
-        'Prithvi': 'dense seismic force out of the terrestrial crust',
-        'Vayu': 'spinning vortex structures out of atmospheric currents'
-    };
-    
-    let tier = validOrbs <= 5 ? "Novice" : validOrbs <= 10 ? "Adept" : validOrbs <= 15 ? "Expert" : "Master";
+    let finalDmg = Math.floor(baseDmg * multiplier);
 
     let statHTML = `
 ============================================================<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AMPLITUDE SYNTHESIS FINALIZED<br>
 ============================================================<br>
- CORE ELEMENT SELECTION : ${element.toUpperCase()} (${aura} Bound)<br>
- OFFENSIVE MAGIC POWER LOCKED : ${powerName.toUpperCase()} (${stats.orbsCollected} Orbs Logged)<br>
- RESONANCE ASSIGNMENT&nbsp;&nbsp; : ${hz.toFixed(1)} Hz (${hzProfile})<br>
- AMPLITUDE COEFFICIENT&nbsp; : ${v.toFixed(1)} V (${vProfile})<br>
+ CORE ELEMENT SELECTION: ${element.toUpperCase()}<br>
+ OFFENSIVE MAGIC POWER LOCKED: ${powerName.toUpperCase()}<br>
 <br>
- STRUCTURAL LOGIC RECORD:<br>
- "Subject harnesses the ${tier} Offensive Magic Power [${powerName}], drawing <br>
- ${flavorFlav[element]}. <br>
+ [LEVEL 1] BASE POTENTIAL:<br>
+ -> ${validOrbs} Orbs Gathered = ${baseDmg} Base DMG<br>
 <br>
- ${hzText} <br>
- ${vText}"<br>
+ [LEVEL 2] EMOTIONAL FREQUENCY:<br>
+ -> ${hz.toFixed(1)} Hz (${hzProfile})<br>
+ -> Hit Chance: ${accuracy}% (Due to ${accuracyReason})<br>
+<br>
+ [LEVEL 3] CORE DENSITY:<br>
+ -> ${densityLabel} (${avgRadius.toFixed(1)}px Avg Radius)<br>
+ -> Power Multiplier: x${multiplier.toFixed(1)}<br>
+ -> Essence Drain: ${drain}% HP per cast<br>
+<br>
+ ============================================================<br>
+ COMBAT OUTPUT SPECIFICATIONS:<br>
+ Damage per Hit : ${finalDmg} DMG<br>
+ Maximum Casts : ${maxCasts} Casts before Essence Depletion<br>
 ============================================================
     `;
     return statHTML;
@@ -1360,8 +1288,7 @@ function handleLvl3Complete() {
     lvl3GameActive = false;
     cancelAnimationFrame(lvl3AnimationFrameId);
     
-    const scores = calculateVoltageOutput();
-    window.playerStats.finalVoltage = scores.finalVoltage;
+    window.playerStats.lvl3AvgRadius = lvl3AvgAccumulator / lvl3Ticks;
     
     document.getElementById("lvl3SummaryDisplay").innerHTML = buildFinalStatSheet();
     document.getElementById("lvl3ResultsScreen").style.display = "flex";
@@ -1374,17 +1301,17 @@ function lvl3GameLoop() {
     lvl3TimeRemaining = lvl3GameTimeLimit - runtimeSeconds;
     
     if (lvl3TimeRemaining <= 0) {
-        handleLvl3Complete();
+        handleLvl3RoundEnd();
         return;
     }
     
     updateLvl3SimulationLogic();
     drawLvl3Graphics();
+    updateLvl3HUDMetrics();
     
-    const liveCalc = calculateVoltageOutput();
-    updateLvl3HUDMetrics(liveCalc.finalVoltage);
-    
-    lvl3AnimationFrameId = requestAnimationFrame(lvl3GameLoop);
+    if (lvl3GameActive) {
+        lvl3AnimationFrameId = requestAnimationFrame(lvl3GameLoop);
+    }
 }
 
 function resetToLevel3Init() {
@@ -1395,9 +1322,9 @@ function resetToLevel3Init() {
     if (lvl3Ctx) lvl3Ctx.clearRect(0, 0, lvl3Canvas.width, lvl3Canvas.height);
     
     document.getElementById("lvl3TimerValue").innerText = "60.0";
-    document.getElementById("stabilityBar").style.width = "100%";
-    document.getElementById("stabilityBar").style.backgroundColor = "#00ffcc";
-    document.getElementById("voltageValue").innerText = "0.0 V";
+    document.getElementById("lvl3RoundValue").innerText = "1/5";
+    document.getElementById("lvl3IntegrityValue").innerText = "STABLE";
+    document.getElementById("lvl3IntegrityValue").style.color = "#00ffcc";
 }
 
 // ==========================================
