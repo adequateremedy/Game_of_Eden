@@ -799,13 +799,13 @@ function startLevel2() {
     lvl2Round = 1;
     lvl2AccumulatedKinetic = 0;
     lvl2KineticTicks = 0;
+    lvl2Player.speed = lvl2Player.baseSpeed;
     
     startLvl2Round();
 }
 
 function startLvl2Round() {
     lvl2Player.x = 400;
-    lvl2Player.speed = lvl2Player.baseSpeed;
     lvl2CurrentKinetic = 0;
     lvl2TotalDistanceMoved = 0;
     
@@ -824,6 +824,7 @@ function restartLvl2Round1() {
     // Wipe trackers since round 1 was failed
     lvl2AccumulatedKinetic = 0;
     lvl2KineticTicks = 0;
+    lvl2Player.speed = lvl2Player.baseSpeed;
     
     for (let key in keys) { keys[key] = false; }
     
