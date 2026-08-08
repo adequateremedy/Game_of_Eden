@@ -760,22 +760,19 @@ let lvl2AnimationFrameId;
 let lvl2Blocks = [];
 let lvl2Frames = 0;
 
-let lvl2TotalDistanceMoved = 0;
-let lvl2LastPlayerX = 0;
-let lvl2PinkCollected = 0;
-let lvl2BrownCollected = 0;
+let lvl2CurrentKinetic = 0;
+let lvl2AccumulatedKinetic = 0;
+let lvl2KineticTicks = 0;
 
-// Trackers across 3 rounds
-let lvl2AccumulatedDistance = 0;
-let lvl2AccumulatedPink = 0;
-let lvl2AccumulatedBrown = 0;
+let lvl2TotalDistanceMoved = 0;
 
 const lvl2Player = {
     x: 400,
     y: 370,
     width: 40,
     height: 10,
-    speed: 7,
+    speed: 7.0,
+    baseSpeed: 7.0,
     color: "#00ffcc"
 };
 
@@ -788,27 +785,25 @@ function startLevel2() {
 
     document.getElementById("introScreen").style.display = "none";
     document.getElementById("resultsScreen").style.display = "none";
+    document.getElementById("lvl2WarningScreen").style.display = "none";
     
     for (let key in keys) { keys[key] = false; }
     
     lvl2Round = 1;
-    lvl2AccumulatedDistance = 0;
-    lvl2AccumulatedPink = 0;
-    lvl2AccumulatedBrown = 0;
+    lvl2AccumulatedKinetic = 0;
+    lvl2KineticTicks = 0;
     
     startLvl2Round();
 }
 
 function startLvl2Round() {
     lvl2Player.x = 400;
-    lvl2LastPlayerX = lvl2Player.x;
+    lvl2Player.speed = lvl2Player.baseSpeed;
+    lvl2CurrentKinetic = 0;
+    lvl2TotalDistanceMoved = 0;
     
     lvl2Blocks = [];
     lvl2Frames = 0;
-    
-    lvl2TotalDistanceMoved = 0;
-    lvl2PinkCollected = 0;
-    lvl2BrownCollected = 0;
     
     lvl2StartTime = performance.now();
     lvl2GameActive = true;
@@ -816,25 +811,56 @@ function startLvl2Round() {
     lvl2GameLoop();
 }
 
+function restartLvl2Round1() {
+    document.getElementById("lvl2WarningScreen").style.display = "none";
+    
+    // Wipe trackers since round 1 was failed
+    lvl2AccumulatedKinetic = 0;
+    lvl2KineticTicks = 0;
+    
+    for (let key in keys) { keys[key] = false; }
+    
+    startLvl2Round();
+}
+
 function updateLvl2PlayerLogic() {
     let nextX = lvl2Player.x;
+    let isMoving = false;
     
-    if (keys["arrowleft"] || keys["a"]) nextX -= lvl2Player.speed;
-    if (keys["arrowright"] || keys["d"]) nextX += lvl2Player.speed;
+    if (keys["arrowleft"] || keys["a"]) {
+        nextX -= lvl2Player.speed;
+        isMoving = true;
+    }
+    if (keys["arrowright"] || keys["d"]) {
+        nextX += lvl2Player.speed;
+        isMoving = true;
+    }
+    
+    // Manage Kinetic Output Bar smoothly based on current speed potential
+    if (isMoving) {
+        lvl2CurrentKinetic += (lvl2Player.speed * 0.1); 
+    } else {
+        lvl2CurrentKinetic -= 1.0; 
+    }
+    
+    if (lvl2CurrentKinetic > 100) lvl2CurrentKinetic = 100;
+    if (lvl2CurrentKinetic < 0) lvl2CurrentKinetic = 0;
+    
+    lvl2AccumulatedKinetic += lvl2CurrentKinetic;
+    lvl2KineticTicks++;
     
     // Bounds checking
     if (nextX < 20) nextX = 20;
     if (nextX > lvl2Canvas.width - 20) nextX = lvl2Canvas.width - 20;
     
+    let dist = Math.abs(lvl2Player.x - nextX);
+    lvl2TotalDistanceMoved += dist;
+    
     lvl2Player.x = nextX;
     
-    let dist = Math.abs(lvl2Player.x - lvl2LastPlayerX);
-    lvl2TotalDistanceMoved += dist;
-    lvl2LastPlayerX = lvl2Player.x;
-    
-    // Block spawning
+    // Slower Block Spawning (roughly 30 blocks per minute)
     lvl2Frames++;
-    if (lvl2Frames % 40 === 0) {
+    if (lvl2Frames % 120 === 0) {
         let isPink = Math.random() > 0.5;
         lvl2Blocks.push({
             x: Math.random() * (lvl2Canvas.width - 40) + 20,
@@ -845,7 +871,7 @@ function updateLvl2PlayerLogic() {
         });
     }
     
-    // Block logic
+    // Block logic (Modifiers affect speed in real-time)
     for (let i = lvl2Blocks.length - 1; i >= 0; i--) {
         let b = lvl2Blocks[i];
         b.y += 3.5; 
@@ -857,8 +883,12 @@ function updateLvl2PlayerLogic() {
             b.y < lvl2Player.y + lvl2Player.height/2 &&
             b.y + b.height > lvl2Player.y - lvl2Player.height/2
         ) {
-            if (b.type === 2) lvl2PinkCollected++;
-            else lvl2BrownCollected++;
+            if (b.type === 2) {
+                lvl2Player.speed += 1.5; // Pink Accelerator
+            } else {
+                lvl2Player.speed -= 1.5; // Brown Dampener
+                if (lvl2Player.speed < 2.0) lvl2Player.speed = 2.0; // Min cap so they don't freeze
+            }
             
             lvl2Blocks.splice(i, 1);
             continue;
@@ -914,17 +944,30 @@ function drawLvl2Screen() {
 function updateLvl2HUD() {
     document.getElementById("timerValue").innerText = Math.max(0, lvl2TimeRemaining).toFixed(1);
     document.getElementById("roundValue").innerText = `${lvl2Round}/${lvl2MaxRounds}`;
-    document.getElementById("pinkValue").innerText = lvl2PinkCollected;
-    document.getElementById("brownValue").innerText = lvl2BrownCollected;
+    document.getElementById("velocityValue").innerText = lvl2Player.speed.toFixed(1);
+    
+    // Update Kinetic Bar
+    const kineticBar = document.getElementById("kineticBar");
+    kineticBar.style.width = lvl2CurrentKinetic + "%";
+    
+    if (lvl2CurrentKinetic > 80) {
+        kineticBar.style.backgroundColor = "#ff007f"; // Erratic range
+    } else if (lvl2CurrentKinetic > 40) {
+        kineticBar.style.backgroundColor = "#ffcc00"; // Steady range
+    } else {
+        kineticBar.style.backgroundColor = "#00ffcc"; // Calm range
+    }
 }
 
 function handleLvl2RoundEnd() {
     lvl2GameActive = false;
     cancelAnimationFrame(lvl2AnimationFrameId);
     
-    lvl2AccumulatedDistance += lvl2TotalDistanceMoved;
-    lvl2AccumulatedPink += lvl2PinkCollected;
-    lvl2AccumulatedBrown += lvl2BrownCollected;
+    // Fail-safe logic: If player didn't move at all in Round 1
+    if (lvl2Round === 1 && lvl2TotalDistanceMoved === 0) {
+        document.getElementById("lvl2WarningScreen").style.display = "flex";
+        return;
+    }
     
     if (lvl2Round < lvl2MaxRounds) {
         lvl2Round++;
@@ -935,19 +978,14 @@ function handleLvl2RoundEnd() {
 }
 
 function calculateLvl2FinalMetrics() {
-    let avgDistance = lvl2AccumulatedDistance / lvl2MaxRounds;
-    let avgPink = lvl2AccumulatedPink / lvl2MaxRounds;
-    let avgBrown = lvl2AccumulatedBrown / lvl2MaxRounds;
-    
-    let movementRatio = Math.min(1, avgDistance / 9000);
-    let baselineHz = 60.0 + (movementRatio * 40.0);
-    let modifierHz = (avgPink * 5.0) - (avgBrown * 5.0);
-    let finalHz = baselineHz + modifierHz;
+    let avgKinetic = lvl2AccumulatedKinetic / lvl2KineticTicks;
+    // Map average kinetic output (0-100) to final frequency range (40.0 - 120.0 Hz)
+    let finalHz = 40.0 + (avgKinetic / 100.0) * 80.0;
     
     if (finalHz < 40) finalHz = 40;
     if (finalHz > 120) finalHz = 120;
     
-    return { baselineHz, avgPink, avgBrown, modifierHz, finalHz };
+    return { avgKinetic, finalHz };
 }
 
 function handleLvl2FinalComplete() {
@@ -955,7 +993,7 @@ function handleLvl2FinalComplete() {
     window.playerStats.finalHz = scores.finalHz; 
     
     document.getElementById("hzDisplay").innerText = scores.finalHz.toFixed(2) + " Hz";
-    document.getElementById("mathDisplay").innerHTML = `<strong>CALIBRATION SUMMARY:</strong><br> Baseline Pacing Signature: ${scores.baselineHz.toFixed(1)} Hz<br> Pink Node Modifier (Avg ${scores.avgPink.toFixed(1)}): +${(scores.avgPink * 5.0).toFixed(1)} Hz<br> Brown Node Modifier (Avg ${scores.avgBrown.toFixed(1)}): -${(scores.avgBrown * 5.0).toFixed(1)} Hz<br> <span style="color:#00ffcc;">Formula: ${scores.baselineHz.toFixed(1)} + ${(scores.avgPink * 5.0).toFixed(1)} - ${(scores.avgBrown * 5.0).toFixed(1)} = ${scores.finalHz.toFixed(2)} Hz</span>`;
+    document.getElementById("mathDisplay").innerHTML = `<strong>CALIBRATION SUMMARY:</strong><br> Average Kinetic Output: ${scores.avgKinetic.toFixed(1)}%<br> Base Velocity Range: 40.0 Hz - 120.0 Hz<br> <span style="color:#00ffcc;">Final Synthesized Frequency: ${scores.finalHz.toFixed(2)} Hz</span>`;
     
     document.getElementById("resultsScreen").style.display = "flex";
 }
@@ -1265,10 +1303,10 @@ function buildFinalStatSheet() {
     
     let hzProfile = "";
     let hzText = "";
-    if (hz <= 60.0) {
+    if (hz <= 70.0) {
         hzProfile = "Calm";
         hzText = `Due to a low-frequency signature of ${hz.toFixed(1)} Hz, the emotion that triggers your <strong>[${powerName}]</strong> is Calm. Use of this power carries a 75% accuracy, because the emotion itself is highly focused and deeply rooted.`;
-    } else if (hz <= 100.0) {
+    } else if (hz <= 95.0) {
         hzProfile = "Steady";
         hzText = `Due to a balanced-frequency signature of ${hz.toFixed(1)} Hz, the emotion that triggers your <strong>[${powerName}]</strong> is Steady. Use of this power carries a 50% accuracy, because the emotion provides a standard, controlled flow.`;
     } else {
