@@ -108,7 +108,7 @@ function playAudio(src) {
 }
 
 // ==========================================
-// LEVEL 1: ESSENCE DEVELOPMENT (TRUE COMPLEX SQUARE MAZE)
+// LEVEL 1: ESSENCE DEVELOPMENT (TRUE SQUARE LABYRINTH W/ PERIMETER ENTRANCE)
 // ==========================================
 const loreData = [
     `Your Agni Essence embodies an intense, consuming passion that ignites creativity and drives ambition forward with unstoppable momentum. This fierce energy easily spills over into a volatile, explosive anger when restricted, burning through boundaries with sharp impatience. Yet, beneath the aggression lies a warm, radiant joy that offers comfort, protection, and deep inspiration to those nearby. It also carries a sharp, critical judgment, fiercely cutting away falsehoods to seek absolute purity and truth. Finally, it harbors a restless anxiety, a constant, flickering fear of depletion that forces it to always seek new fuel to sustain its brilliant light.`,
@@ -126,8 +126,8 @@ const circleConfigs = [
 
 let selectedColorHex = '';
 let chosenMazeIndex = 0;
-let playerX = 30;
-let playerY = 30;
+let playerX = 220;
+let playerY = 0;
 let playerRadius = 3.5;
 let playerActive = false;
 let keys = {};
@@ -139,13 +139,14 @@ let glowTimeRemaining = 40;
 let activeOrbs = [];
 let lvl1Round = 1;
 const lvl1MaxRounds = 3;
+let hasEnteredLabyrinth = false;
+let entranceCoord = { r: 0, c: 0 };
 
-// True labyrinth grid structure (odd dimensions for standard maze generation: 21x21 cells)
-const mazeCanvasWidth = 440;
+const mazeWidth = 440;
 const cols = 21; 
 const rows = 21;
-const cellWidth = mazeCanvasWidth / cols;
-let baseMazeGrid = []; // 2D array: 1 = wall, 0 = path
+const cellWidth = mazeWidth / cols;
+let baseMazeGrid = [];
 
 window.addEventListener('keydown', (e) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
@@ -275,8 +276,8 @@ function finishSelection() {
         gameTimer = 180;
         
         generateTrueLabyrinth();
-        setupLabyrinthRound();
-        drawTrueLabyrinth();
+        setupPerimeterRound();
+        drawTrueLabyrinth(false);
 
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
@@ -292,7 +293,6 @@ function finishSelection() {
 }
 
 function generateTrueLabyrinth() {
-    // Initialize all as walls (1)
     baseMazeGrid = Array(rows).fill(0).map(() => Array(cols).fill(1));
 
     let seed = (chosenMazeIndex + 1) * 777;
@@ -301,7 +301,6 @@ function generateTrueLabyrinth() {
         return seed / 233280;
     }
 
-    // Randomized Depth-First Search (DFS) Maze Generation Algorithm
     let stack = [];
     let startR = 1;
     let startC = 1;
@@ -327,11 +326,8 @@ function generateTrueLabyrinth() {
         }
 
         if (neighbors.length > 0) {
-            // Shuffle neighbors pseudo-randomly
             neighbors.sort(() => rnd() - 0.5);
             let next = neighbors[0];
-            
-            // Carve path between current and neighbor
             baseMazeGrid[current.r + next.dr / 2][current.c + next.dc / 2] = 0;
             baseMazeGrid[next.r][next.c] = 0;
             stack.push({r: next.r, c: next.c});
@@ -340,7 +336,6 @@ function generateTrueLabyrinth() {
         }
     }
 
-    // Carve a spacious 3x3 central chamber
     let midR = Math.floor(rows / 2);
     let midC = Math.floor(cols / 2);
     for (let r = midR - 1; r <= midR + 1; r++) {
@@ -365,39 +360,51 @@ function getRotatedGrid(grid, rotationCount) {
     return res;
 }
 
-function setupLabyrinthRound() {
-    // 0: Agni (Top outer wall), 1: Jala (Left outer wall), 2: Prithvi (Bottom outer wall), 3: Vayu (Right outer wall)
-    let basePos = chosenMazeIndex;
+function setupPerimeterRound() {
+    hasEnteredLabyrinth = false;
+    let basePos = chosenMazeIndex; // 0: Agni, 1: Jala, 2: Prithvi, 3: Vayu
     let currentPos = (basePos + (lvl1Round - 1)) % 4; // Rotates 90 deg clockwise per round
 
-    let midCoord = mazeCanvasWidth / 2;
-    let offset = cellWidth * 1.5;
+    let midCoord = mazeWidth / 2;
+    let outerOffset = 15;
+    let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
 
+    // Find a valid path cell on the outer perimeter wall to use as the open entrance door
+    let targetRow = 0, targetCol = Math.floor(cols / 2);
+    if (currentPos === 0) { targetRow = 0; targetCol = Math.floor(cols / 2); }
+    else if (currentPos === 1) { targetRow = Math.floor(rows / 2); targetCol = 0; }
+    else if (currentPos === 2) { targetRow = rows - 1; targetCol = Math.floor(cols / 2); }
+    else if (currentPos === 3) { targetRow = Math.floor(rows / 2); targetCol = cols - 1; }
+
+    // Scan along that perimeter to find an open path connection
+    entranceCoord = { r: targetRow, c: targetCol };
+    activeGrid[entranceCoord.r][entranceCoord.c] = 0; // Open door
+
+    // Set player outside spawn position
     if (currentPos === 0) {
-        // Top Perimeter
-        playerX = midCoord;
-        playerY = offset;
+        playerX = targetCol * cellWidth + cellWidth / 2;
+        playerY = outerOffset;
     } else if (currentPos === 1) {
-        // Left Perimeter
-        playerX = offset;
-        playerY = midCoord;
+        playerX = outerOffset;
+        playerY = targetRow * cellWidth + cellWidth / 2;
     } else if (currentPos === 2) {
-        // Bottom Perimeter
-        playerX = midCoord;
-        playerY = mazeCanvasWidth - offset;
+        playerX = targetCol * cellWidth + cellWidth / 2;
+        playerY = mazeWidth - outerOffset;
     } else {
-        // Right Perimeter
-        playerX = mazeCanvasWidth - offset;
-        playerY = midCoord;
+        playerX = mazeWidth - outerOffset;
+        playerY = targetRow * cellWidth + cellWidth / 2;
     }
 }
 
-function drawTrueLabyrinth() {
+function drawTrueLabyrinth(sealed) {
     const canvas = document.getElementById('mazeCanvas');
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
+    if (sealed) {
+        activeGrid[entranceCoord.r][entranceCoord.c] = 1; // Seal entrance door
+    }
 
     ctx.save();
     ctx.strokeStyle = selectedColorHex;
@@ -408,14 +415,14 @@ function drawTrueLabyrinth() {
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (activeGrid[r][c] === 1) {
-                ctx.fillStyle = 'rgba(18, 18, 24, 0.9)';
+                ctx.fillStyle = 'rgba(18, 18, 24, 0.95)';
                 ctx.fillRect(c * cellWidth, r * cellWidth, cellWidth, cellWidth);
                 ctx.strokeRect(c * cellWidth, r * cellWidth, cellWidth, cellWidth);
             }
         }
     }
 
-    // Highlight Central Chamber
+    // Highlight Central Chamber Destination
     let midR = Math.floor(rows / 2);
     let midC = Math.floor(cols / 2);
     ctx.fillStyle = selectedColorHex;
@@ -431,8 +438,7 @@ function closeMazeInstructions() {
     instructionBox.style.pointerEvents = 'none';
     setTimeout(() => {
         instructionBox.style.display = 'none';
-        drawTrueLabyrinth();
-        spawnInitialOrbs();
+        drawTrueLabyrinth(false);
 
         const playerCircle = document.getElementById('player-circle');
         playerCircle.style.backgroundColor = selectedColorHex;
@@ -442,10 +448,6 @@ function closeMazeInstructions() {
         playerCircle.style.opacity = '1';
 
         playerActive = true;
-        if (!timerInterval) {
-            startMainTimer();
-            startGleamTimer();
-        }
     }, 1000);
 }
 
@@ -569,12 +571,31 @@ function gameLoop() {
             let nextX = playerX + rawDx + slipX;
             let nextY = playerY + rawDy + slipY;
 
-            if (!checkWallCollision(nextX, playerY)) playerX = nextX;
-            if (!checkWallCollision(playerX, nextY)) playerY = nextY;
+            if (!hasEnteredLabyrinth) {
+                // Check if player crossed into the entrance cell to seal labyrinth and start timers
+                let ec = entranceCoord.c * cellWidth;
+                let er = entranceCoord.r * cellWidth;
+                if (nextX >= ec && nextX <= ec + cellWidth && nextY >= er && nextY <= er + cellWidth) {
+                    hasEnteredLabyrinth = true;
+                    drawTrueLabyrinth(true); // Seal the entrance door behind player
+                    document.getElementById('maze-ui').style.display = 'block';
+                    startMainTimer();
+                    startGleamTimer();
+                    spawnInitialOrbs();
+                }
+            }
 
-            checkOrbCollection();
+            if (hasEnteredLabyrinth) {
+                if (!checkWallCollision(nextX, playerY)) playerX = nextX;
+                if (!checkWallCollision(playerX, nextY)) playerY = nextY;
+                checkOrbCollection();
+            } else {
+                // Free movement outside before crossing threshold
+                playerX = nextX;
+                playerY = nextY;
+            }
 
-            // Check if player reached the center chamber zone
+            // Check if player reached the center chamber destination
             let midR = Math.floor(rows / 2);
             let midC = Math.floor(cols / 2);
             let chamberMinX = (midC - 1) * cellWidth;
@@ -582,7 +603,7 @@ function gameLoop() {
             let chamberMinY = (midR - 1) * cellWidth;
             let chamberMaxY = (midR + 2) * cellWidth;
 
-            if (playerX >= chamberMinX && playerX <= chamberMaxX &&
+            if (hasEnteredLabyrinth && playerX >= chamberMinX && playerX <= chamberMaxX &&
                 playerY >= chamberMinY && playerY <= chamberMaxY) {
                 
                 playerActive = false;
@@ -592,9 +613,9 @@ function gameLoop() {
                 if (lvl1Round < lvl1MaxRounds) {
                     lvl1Round++;
                     glowTimeRemaining = 40;
-                    setupLabyrinthRound();
+                    setupPerimeterRound();
                     document.getElementById('lvl1-round-display').innerText = lvl1Round;
-                    drawTrueLabyrinth();
+                    drawTrueLabyrinth(false);
 
                     const playerCircle = document.getElementById('player-circle');
                     playerCircle.style.left = `${playerX}px`;
