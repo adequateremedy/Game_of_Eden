@@ -46,7 +46,7 @@ body, html {
     width: 100%;
     animation: zoomInTitle 2s ease-out 2s forwards;
     filter: drop-shadow(5px 5px 8px rgba(0, 0, 0, 1));
-    pointer-events: none; /* Prevent stealing clicks */
+    pointer-events: none;
 }
 
 #level1-container h1 {
@@ -81,8 +81,8 @@ body, html {
     text-transform: uppercase;
     animation: fadeInButton 1s ease-out 4s forwards;
     transition: transform 0.2s, background 0.2s;
-    z-index: 9999; /* Force to front */
-    pointer-events: auto; /* Ensure it is always clickable */
+    z-index: 9999;
+    pointer-events: auto;
 }
 
 #start-btn:hover {
@@ -419,7 +419,7 @@ body, html {
     background-color: #0b0b0d;
     color: #ffffff;
     font-family: 'Courier New', Courier, monospace;
-    display: none; /* Flex when activated */
+    display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -430,10 +430,9 @@ body, html {
     left: 0;
     z-index: 100;
     overflow: hidden;
-    --core-color: #00ffcc; /* Dynamically injected by JS */
+    --core-color: #00ffcc;
 }
 
-/* Dedicated Background Canvas for Transformative States */
 #lvl2BgCanvas {
     position: absolute;
     top: 0;
@@ -444,7 +443,6 @@ body, html {
     pointer-events: none;
 }
 
-/* Keep internal UI and Canvas above the animated background */
 #level2-container h1, 
 #hudContainer, 
 #gameContainer {
@@ -491,7 +489,6 @@ body, html {
     color: #ffcc00;
 }
 
-/* Kinetic Bar HUD Addition */
 #kineticWrapper {
     width: 100px;
     height: 12px;
@@ -516,7 +513,6 @@ body, html {
     height: 400px;
 }
 
-/* Semi-Transparent Frosted Glass Canvas */
 #gameCanvas {
     border: 4px solid #2d2d35;
     background-color: rgba(17, 17, 21, 0.45);
@@ -542,7 +538,6 @@ body, html {
     border: 4px solid #2d2d35;
 }
 
-/* Fully Transparent background for results screen so the mandala shines through clearly */
 #resultsScreen {
     background: rgba(11, 11, 13, 0.0) !important;
 }
@@ -606,7 +601,7 @@ body, html {
     background-color: #050508;
     color: #ffffff;
     font-family: 'Courier New', Courier, monospace;
-    display: none; /* Flex when activated */
+    display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -617,10 +612,9 @@ body, html {
     left: 0;
     z-index: 200;
     overflow: hidden;
-    --core-color: #ff3366; /* Dynamically injected by JS */
+    --core-color: #ff3366;
 }
 
-/* Level 3 Shockwave Effect Layer */
 #lvl3ShockwaveLayer {
     position: absolute;
     top: 0;
