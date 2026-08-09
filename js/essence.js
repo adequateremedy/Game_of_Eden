@@ -1112,7 +1112,8 @@ function startLevel2() {
     
     initLvl2Background();
     
-    playAudio('assets/Merciless Engines.mp3');
+    // SWITCHED AUDIO: Level 2 now plays Voltz.mp3
+    playAudio('assets/Voltz.mp3');
 
     document.getElementById("introScreen").style.display = "none";
     document.getElementById("resultsScreen").style.display = "none";
@@ -1519,7 +1520,8 @@ function startLevel3() {
         document.getElementById('level3-container').style.setProperty('--core-color', selectedColorHex);
     }
 
-    playAudio('assets/Voltz.mp3');
+    // SWITCHED AUDIO: Level 3 now plays Merciless Engines.mp3
+    playAudio('assets/Merciless Engines.mp3');
 
     document.getElementById("lvl3IntroScreen").style.display = "none";
     document.getElementById("lvl3FailureScreen").style.display = "none";
