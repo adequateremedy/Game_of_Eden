@@ -108,7 +108,7 @@ function playAudio(src) {
 }
 
 // ==========================================
-// LEVEL 1: ESSENCE DEVELOPMENT (TRUE MULTI-PATH LABYRINTH W/ ROUND TIMERS: 1m, 2m, 3m)
+// LEVEL 1: ESSENCE DEVELOPMENT (TRUE MULTI-PATH LABYRINTH W/ OUTSIDE SPOWN)
 // ==========================================
 const loreData = [
     `Your Agni Essence embodies an intense, consuming passion that ignites creativity and drives ambition forward with unstoppable momentum. This fierce energy easily spills over into a volatile, explosive anger when restricted, burning through boundaries with sharp impatience. Yet, beneath the aggression lies a warm, radiant joy that offers comfort, protection, and deep inspiration to those nearby. It also carries a sharp, critical judgment, fiercely cutting away falsehoods to seek absolute purity and truth. Finally, it harbors a restless anxiety, a constant, flickering fear of depletion that forces it to always seek new fuel to sustain its brilliant light.`,
@@ -132,7 +132,7 @@ let playerRadius = 3.5;
 let playerActive = false;
 let keys = {};
 
-const roundTimes = [60, 120, 180]; // Round 1 = 1 min, Round 2 = 2 mins, Round 3 = 3 mins
+const roundTimes = [60, 120, 180];
 let gameTimer = 60;
 let timerInterval = null;
 let totalOrbsCollected = 0;
@@ -294,7 +294,6 @@ function finishSelection() {
 }
 
 function generateBraidedLabyrinth() {
-    // 1st: Generate base perfect maze via DFS
     baseMazeGrid = Array(rows).fill(0).map(() => Array(cols).fill(1));
 
     let seed = (chosenMazeIndex + 1) * 777;
@@ -338,7 +337,6 @@ function generateBraidedLabyrinth() {
         }
     }
 
-    // 2nd: Braiding (knock down selective interior walls to guarantee multiple paths to center and maintain 10+ rich dead ends)
     let internalWalls = [];
     for (let r = 2; r < rows - 2; r++) {
         for (let c = 2; c < cols - 2; c++) {
@@ -348,14 +346,12 @@ function generateBraidedLabyrinth() {
         }
     }
     internalWalls.sort(() => rnd() - 0.5);
-    // Knock down about 15% of internal walls to create multiple looping paths
     let wallsToKnock = Math.floor(internalWalls.length * 0.15);
     for (let i = 0; i < wallsToKnock; i++) {
         let w = internalWalls[i];
         baseMazeGrid[w.r][w.c] = 0;
     }
 
-    // 3rd: Carve spacious 3x3 central chamber destination
     let midR = Math.floor(rows / 2);
     let midC = Math.floor(cols / 2);
     for (let r = midR - 1; r <= midR + 1; r++) {
@@ -385,10 +381,6 @@ function setupPerimeterRound() {
     let basePos = chosenMazeIndex; // 0: Agni, 1: Jala, 2: Prithvi, 3: Vayu
     let currentPos = (basePos + (lvl1Round - 1)) % 4; // Rotates 90 deg clockwise per round
 
-    let midCoord = mazeWidth / 2;
-    let outerOffset = 18; // Clearly outside the perimeter wall
-    let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
-
     let targetRow = 0, targetCol = Math.floor(cols / 2);
     if (currentPos === 0) { targetRow = 0; targetCol = Math.floor(cols / 2); }
     else if (currentPos === 1) { targetRow = Math.floor(rows / 2); targetCol = 0; }
@@ -396,19 +388,22 @@ function setupPerimeterRound() {
     else if (currentPos === 3) { targetRow = Math.floor(rows / 2); targetCol = cols - 1; }
 
     entranceCoord = { r: targetRow, c: targetCol };
-    activeGrid[entranceCoord.r][entranceCoord.c] = 0; // Ensure open entrance door
 
+    // Ensure entrance cell and adjacent inner cell are clear path
+    baseMazeGrid[targetRow][targetCol] = 0; 
+
+    // Position player SAFELY OUTSIDE the perimeter wall
     if (currentPos === 0) {
         playerX = targetCol * cellWidth + cellWidth / 2;
-        playerY = outerOffset;
+        playerY = -12; // Clearly outside top boundary
     } else if (currentPos === 1) {
-        playerX = outerOffset;
+        playerX = -12; // Clearly outside left boundary
         playerY = targetRow * cellWidth + cellWidth / 2;
     } else if (currentPos === 2) {
         playerX = targetCol * cellWidth + cellWidth / 2;
-        playerY = mazeWidth - outerOffset;
+        playerY = mazeWidth + 12; // Clearly outside bottom boundary
     } else {
-        playerX = mazeWidth - outerOffset;
+        playerX = mazeWidth + 12; // Clearly outside right boundary
         playerY = targetRow * cellWidth + cellWidth / 2;
     }
 }
@@ -419,9 +414,6 @@ function drawTrueLabyrinth(sealed) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
-    if (sealed) {
-        activeGrid[entranceCoord.r][entranceCoord.c] = 1; // Seal entrance door behind player
-    }
 
     ctx.save();
     ctx.strokeStyle = selectedColorHex;
@@ -431,7 +423,9 @@ function drawTrueLabyrinth(sealed) {
 
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-            if (activeGrid[r][c] === 1) {
+            // Draw wall unless it is the currently open entrance door before player enters
+            let isEntrance = (r === entranceCoord.r && c === entranceCoord.c);
+            if (activeGrid[r][c] === 1 || (isEntrance && sealed)) {
                 ctx.fillStyle = 'rgba(18, 18, 24, 0.95)';
                 ctx.fillRect(c * cellWidth, r * cellWidth, cellWidth, cellWidth);
                 ctx.strokeRect(c * cellWidth, r * cellWidth, cellWidth, cellWidth);
@@ -580,7 +574,6 @@ function gameLoop() {
         if (keys['arrowright'] || keys['d']) rawDx += baseSpeed;
 
         if (rawDx !== 0 || rawDy !== 0) {
-            // UNSTABLE OFF-AXIS SLIP & INERTIA
             let slipFactor = 0.35;
             let slipX = (Math.random() - 0.5) * slipFactor * baseSpeed;
             let slipY = (Math.random() - 0.5) * slipFactor * baseSpeed;
@@ -589,28 +582,24 @@ function gameLoop() {
             let nextY = playerY + rawDy + slipY;
 
             if (!hasEnteredLabyrinth) {
-                let ec = entranceCoord.c * cellWidth;
-                let er = entranceCoord.r * cellWidth;
-                if (nextX >= ec && nextX <= ec + cellWidth && nextY >= er && nextY <= er + cellWidth) {
+                // Free movement outside until player crosses inside maze bounds
+                if (nextX >= 0 && nextX <= mazeWidth && nextY >= 0 && nextY <= mazeWidth) {
                     hasEnteredLabyrinth = true;
-                    drawTrueLabyrinth(true); // Seal entrance door behind player
+                    drawTrueLabyrinth(true); // Snap entrance door shut
                     document.getElementById('maze-ui').style.display = 'block';
                     startMainTimer();
                     startGleamTimer();
                     spawnInitialOrbs();
                 }
-            }
-
-            if (hasEnteredLabyrinth) {
+                playerX = nextX;
+                playerY = nextY;
+            } else {
                 if (!checkWallCollision(nextX, playerY)) playerX = nextX;
                 if (!checkWallCollision(playerX, nextY)) playerY = nextY;
                 checkOrbCollection();
-            } else {
-                playerX = nextX;
-                playerY = nextY;
             }
 
-            // Check if player reached the center chamber destination
+            // Check if player reached central chamber destination
             let midR = Math.floor(rows / 2);
             let midC = Math.floor(cols / 2);
             let chamberMinX = (midC - 1) * cellWidth;
@@ -627,7 +616,7 @@ function gameLoop() {
 
                 if (lvl1Round < lvl1MaxRounds) {
                     lvl1Round++;
-                    gameTimer = roundTimes[lvl1Round - 1]; // Set round duration: 1m, 2m, 3m
+                    gameTimer = roundTimes[lvl1Round - 1]; // Round duration: 1m, 2m, 3m
                     glowTimeRemaining = 40;
                     setupPerimeterRound();
                     document.getElementById('lvl1-round-display').innerText = lvl1Round;
@@ -691,7 +680,7 @@ function gameLoop() {
             }
         }
 
-        // AURA TREMOR JITTER (Micro-shake effect)
+        // AURA TREMOR JITTER
         let jitterX = (Math.random() - 0.5) * 4;
         let jitterY = (Math.random() - 0.5) * 4;
 
