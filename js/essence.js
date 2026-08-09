@@ -108,7 +108,7 @@ function playAudio(src) {
 }
 
 // ==========================================
-// LEVEL 1: ESSENCE DEVELOPMENT (PROCEDURAL INDUSTRIAL & ELEMENTAL WALLS)
+// LEVEL 1: ESSENCE DEVELOPMENT (RECTANGULAR LABYRINTH, RUSTED METAL + PLAYER TINT, 3 PATHS, ESCALATING DEAD ENDS & TIMERS)
 // ==========================================
 const loreData = [
     `Your Agni Essence embodies an intense, consuming passion that ignites creativity and drives ambition forward with unstoppable momentum. This fierce energy easily spills over into a volatile, explosive anger when restricted, burning through boundaries with sharp impatience. Yet, beneath the aggression lies a warm, radiant joy that offers comfort, protection, and deep inspiration to those nearby. It also carries a sharp, critical judgment, fiercely cutting away falsehoods to seek absolute purity and truth. Finally, it harbors a restless anxiety, a constant, flickering fear of depletion that forces it to always seek new fuel to sustain its brilliant light.`,
@@ -126,13 +126,13 @@ const circleConfigs = [
 
 let selectedColorHex = '';
 let chosenMazeIndex = 0;
-let playerX = 220;
+let playerX = 260;
 let playerY = 0;
 let playerRadius = 3.5;
 let playerActive = false;
 let keys = {};
 
-const roundTimes = [60, 120, 180]; // Round 1 = 1m, Round 2 = 2m, Round 3 = 3m
+const roundTimes = [60, 120, 180]; // Round 1: 1 min, Round 2: 2 mins, Round 3: 3 mins
 let gameTimer = 60;
 let timerInterval = null;
 let totalOrbsCollected = 0;
@@ -143,10 +143,11 @@ const lvl1MaxRounds = 3;
 let hasEnteredLabyrinth = false;
 let entranceCoord = { r: 0, c: 0 };
 
-const mazeWidth = 440;
-const cols = 21; 
-const rows = 21;
-const cellWidth = mazeWidth / cols;
+const mazeCanvasWidth = 520;
+const mazeCanvasHeight = 380;
+const cols = 26; 
+const rows = 19;
+const cellWidth = mazeCanvasWidth / cols; // 20px per cell
 let baseMazeGrid = [];
 
 window.addEventListener('keydown', (e) => {
@@ -276,9 +277,9 @@ function finishSelection() {
         totalOrbsCollected = 0;
         gameTimer = roundTimes[0];
         
-        generateBraidedLabyrinth();
+        generateRectangularLabyrinth();
         setupPerimeterRound();
-        drawProceduralLabyrinth(false);
+        drawRectangularLabyrinth(false);
 
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
@@ -293,7 +294,7 @@ function finishSelection() {
     }, 1000);
 }
 
-function generateBraidedLabyrinth() {
+function generateRectangularLabyrinth() {
     baseMazeGrid = Array(rows).fill(0).map(() => Array(cols).fill(1));
 
     let seed = (chosenMazeIndex + 1) * 777;
@@ -337,6 +338,7 @@ function generateBraidedLabyrinth() {
         }
     }
 
+    // Braiding to guarantee exactly 3 main pathways to the center while managing dead ends
     let internalWalls = [];
     for (let r = 2; r < rows - 2; r++) {
         for (let c = 2; c < cols - 2; c++) {
@@ -346,12 +348,13 @@ function generateBraidedLabyrinth() {
         }
     }
     internalWalls.sort(() => rnd() - 0.5);
-    let wallsToKnock = Math.floor(internalWalls.length * 0.15);
+    let wallsToKnock = Math.floor(internalWalls.length * 0.12);
     for (let i = 0; i < wallsToKnock; i++) {
         let w = internalWalls[i];
         baseMazeGrid[w.r][w.c] = 0;
     }
 
+    // Central Chamber Destination (3x3 rectangular center)
     let midR = Math.floor(rows / 2);
     let midC = Math.floor(cols / 2);
     for (let r = midR - 1; r <= midR + 1; r++) {
@@ -365,9 +368,10 @@ function getRotatedGrid(grid, rotationCount) {
     let res = JSON.parse(JSON.stringify(grid));
     for (let rot = 0; rot < rotationCount; rot++) {
         let n = res.length;
-        let ret = Array(n).fill(0).map(() => Array(n).fill(0));
+        let m = res[0].length;
+        let ret = Array(m).fill(0).map(() => Array(n).fill(0));
         for (let r = 0; r < n; r++) {
-            for (let c = 0; c < n; c++) {
+            for (let c = 0; c < m; c++) {
                 ret[c][n - 1 - r] = res[r][c];
             }
         }
@@ -389,145 +393,85 @@ function setupPerimeterRound() {
 
     entranceCoord = { r: targetRow, c: targetCol };
 
-    // Clear entrance cell so door is open
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
-    activeGrid[entranceCoord.r][entranceCoord.c] = 0;
+    activeGrid[entranceCoord.r][entranceCoord.c] = 0; // Open door
 
-    // Position player cleanly outside the perimeter wall
+    // Position player strictly 1 block outside the entrance door
+    let offset = cellWidth;
     if (currentPos === 0) {
         playerX = targetCol * cellWidth + cellWidth / 2;
-        playerY = -14; 
+        playerY = -offset;
     } else if (currentPos === 1) {
-        playerX = -14; 
+        playerX = -offset;
         playerY = targetRow * cellWidth + cellWidth / 2;
     } else if (currentPos === 2) {
         playerX = targetCol * cellWidth + cellWidth / 2;
-        playerY = mazeWidth + 14; 
+        playerY = mazeCanvasHeight + offset;
     } else {
-        playerX = mazeWidth + 14; 
+        playerX = mazeCanvasWidth + offset;
         playerY = targetRow * cellWidth + cellWidth / 2;
     }
 }
 
-// Procedural Industrial/Elemental Texturing per Element & Wall Type
-function drawProceduralLabyrinth(sealed) {
+function drawRectangularLabyrinth(sealed) {
     const canvas = document.getElementById('mazeCanvas');
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
+    let currentRows = activeGrid.length;
+    let currentCols = activeGrid[0].length;
+    let cWidth = mazeCanvasWidth / currentCols;
+    let cHeight = mazeCanvasHeight / currentRows;
+
     if (sealed) {
-        activeGrid[entranceCoord.r][entranceCoord.c] = 1; // Snap entrance door shut
+        activeGrid[entranceCoord.r][entranceCoord.c] = 1; // Close entrance door
     }
 
     ctx.save();
     
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            let isPerimeter = (r === 0 || r === rows - 1 || c === 0 || c === cols - 1);
+    for (let r = 0; r < currentRows; r++) {
+        for (let c = 0; c < currentCols; c++) {
             let isWall = (activeGrid[r][c] === 1);
-            let x = c * cellWidth;
-            let y = r * cellWidth;
+            let x = c * cWidth;
+            let y = r * cHeight;
 
             if (isWall) {
-                ctx.save();
-                ctx.translate(x, y);
+                // Rusted Metal Texture Base
+                ctx.fillStyle = '#6b3a2a';
+                ctx.fillRect(x, y, cWidth, cHeight);
+                ctx.strokeStyle = '#3d1f14';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(x, y, cWidth, cHeight);
 
-                if (chosenMazeIndex === 0) {
-                    // AGNI: Lava outside perimeter, hardened Magma/Obsidian inside walls
-                    if (isPerimeter) {
-                        ctx.fillStyle = '#b32400';
-                        ctx.fillRect(0, 0, cellWidth, cellWidth);
-                        ctx.fillStyle = '#ff471a';
-                        ctx.fillRect(3, 3, cellWidth - 6, cellWidth - 6);
-                        ctx.fillStyle = '#ffcc00';
-                        ctx.fillRect(cellWidth/2 - 2, cellWidth/2 - 2, 4, 4);
-                    } else {
-                        ctx.fillStyle = '#261a14';
-                        ctx.fillRect(0, 0, cellWidth, cellWidth);
-                        ctx.strokeStyle = '#b33600';
-                        ctx.lineWidth = 1.5;
-                        ctx.strokeRect(1, 1, cellWidth - 2, cellWidth - 2);
-                        ctx.fillStyle = '#ff3300';
-                        ctx.fillRect(cellWidth/2 - 1.5, cellWidth/2 - 1.5, 3, 3);
-                    }
-                } else if (chosenMazeIndex === 1) {
-                    // JALA: Thick Frost/Ice outside perimeter, cascading Water/Fluid streams inside walls
-                    if (isPerimeter) {
-                        ctx.fillStyle = '#b3d9ff';
-                        ctx.fillRect(0, 0, cellWidth, cellWidth);
-                        ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(2, 2, cellWidth - 4, cellWidth - 4);
-                    } else {
-                        ctx.fillStyle = '#003366';
-                        ctx.fillRect(0, 0, cellWidth, cellWidth);
-                        ctx.strokeStyle = '#3399ff';
-                        ctx.lineWidth = 1.5;
-                        ctx.beginPath();
-                        ctx.moveTo(cellWidth/2, 0);
-                        ctx.lineTo(cellWidth/2, cellWidth);
-                        ctx.stroke();
-                    }
-                } else if (chosenMazeIndex === 2) {
-                    // PRITHVI: Weathered Ancient Stone outside, organic Vine & Root plant walls inside
-                    if (isPerimeter) {
-                        ctx.fillStyle = '#595959';
-                        ctx.fillRect(0, 0, cellWidth, cellWidth);
-                        ctx.strokeStyle = '#383838';
-                        ctx.strokeRect(1, 1, cellWidth - 2, cellWidth - 2);
-                    } else {
-                        ctx.fillStyle = '#264d00';
-                        ctx.fillRect(0, 0, cellWidth, cellWidth);
-                        ctx.strokeStyle = '#66cc00';
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.arc(cellWidth/2, cellWidth/2, cellWidth/3, 0, Math.PI * 2);
-                        ctx.stroke();
-                    }
-                } else if (chosenMazeIndex === 3) {
-                    // VAYU: Weathered Brass & Iron outside, Compressed Steam / Pneumatic Pipe walls inside
-                    if (isPerimeter) {
-                        ctx.fillStyle = '#996633';
-                        ctx.fillRect(0, 0, cellWidth, cellWidth);
-                        ctx.strokeStyle = '#cc9900';
-                        ctx.lineWidth = 1.5;
-                        ctx.strokeRect(1, 1, cellWidth - 2, cellWidth - 2);
-                    } else {
-                        ctx.fillStyle = '#404040';
-                        ctx.fillRect(0, 0, cellWidth, cellWidth);
-                        ctx.strokeStyle = '#b3b3b3';
-                        ctx.lineWidth = 1.5;
-                        ctx.strokeRect(3, 3, cellWidth - 6, cellWidth - 6);
-                        ctx.fillStyle = '#e6e6e6';
-                        ctx.fillRect(cellWidth/2 - 2, cellWidth/2 - 2, 4, 4);
-                    }
+                // Check distance to player for semitransparent aura tint overlay
+                let centerX = x + cWidth / 2;
+                let centerY = y + cHeight / 2;
+                let dist = Math.sqrt((playerX - centerX)**2 + (playerY - centerY)**2);
+                if (dist < 80) {
+                    let alpha = (1 - (dist / 80)) * 0.45; // Semitransparent essence overlay
+                    ctx.fillStyle = selectedColorHex;
+                    ctx.globalAlpha = alpha;
+                    ctx.fillRect(x, y, cWidth, cHeight);
+                    ctx.globalAlpha = 1.0;
                 }
-
-                ctx.restore();
             }
         }
     }
 
-    // Highlight Central Chamber Destination (Steampunk Core Mechanism aesthetic)
-    let midR = Math.floor(rows / 2);
-    let midC = Math.floor(cols / 2);
-    let cx = (midC - 1) * cellWidth;
-    let cy = (midR - 1) * cellWidth;
-    let cSize = cellWidth * 3;
+    // Highlight Central Chamber Destination
+    let midR = Math.floor(currentRows / 2);
+    let midC = Math.floor(currentCols / 2);
+    let cx = (midC - 1) * cWidth;
+    let cy = (midR - 1) * cHeight;
+    let cSizeW = cWidth * 3;
+    let cSizeH = cHeight * 3;
 
     ctx.fillStyle = '#2b1d0c';
-    ctx.fillRect(cx, cy, cSize, cSize);
+    ctx.fillRect(cx, cy, cSizeW, cSizeH);
     ctx.strokeStyle = '#d4af37';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(cx, cy, cSize, cSize);
-
-    // Inner brass gear/core marker
-    ctx.beginPath();
-    ctx.arc(cx + cSize/2, cy + cSize/2, cellWidth * 0.8, 0, Math.PI * 2);
-    ctx.strokeStyle = '#b8860b';
     ctx.lineWidth = 2.5;
-    ctx.stroke();
+    ctx.strokeRect(cx, cy, cSizeW, cSizeH);
 
     ctx.restore();
 }
@@ -538,7 +482,7 @@ function closeMazeInstructions() {
     instructionBox.style.pointerEvents = 'none';
     setTimeout(() => {
         instructionBox.style.display = 'none';
-        drawTrueLabyrinth(false);
+        drawRectangularLabyrinth(false);
 
         const playerCircle = document.getElementById('player-circle');
         playerCircle.style.backgroundColor = selectedColorHex;
@@ -588,21 +532,26 @@ function startGleamTimer() {
 }
 
 function spawnInitialOrbs() {
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 5; i++) { // Strictly capped at 5 orbs
         spawnSingleOrb();
     }
 }
 
 function spawnSingleOrb() {
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
+    let currentRows = activeGrid.length;
+    let currentCols = activeGrid[0].length;
+    let cWidth = mazeCanvasWidth / currentCols;
+    let cHeight = mazeCanvasHeight / currentRows;
+
     let rx, ry, valid = false;
     
     while (!valid) {
-        let c = Math.floor(Math.random() * (cols - 4)) + 2;
-        let r = Math.floor(Math.random() * (rows - 4)) + 2;
+        let c = Math.floor(Math.random() * (currentCols - 4)) + 2;
+        let r = Math.floor(Math.random() * (currentRows - 4)) + 2;
         if (activeGrid[r][c] === 0) {
-            rx = c * cellWidth + cellWidth / 2;
-            ry = r * cellWidth + cellWidth / 2;
+            rx = c * cWidth + cWidth / 2;
+            ry = r * cHeight + cHeight / 2;
             valid = true;
         }
     }
@@ -637,21 +586,26 @@ function checkOrbCollection() {
             playerCircle.style.opacity = '1';
             playerCircle.style.boxShadow = `0 0 25px ${selectedColorHex}`;
 
-            spawnSingleOrb();
+            spawnSingleOrb(); // Replace collected orb immediately to maintain cap of 5
         }
     }
 }
 
 function checkWallCollision(x, y) {
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
-    // If player hasn't entered yet, entrance door is open
+    let currentRows = activeGrid.length;
+    let currentCols = activeGrid[0].length;
+    let cWidth = mazeCanvasWidth / currentCols;
+    let cHeight = mazeCanvasHeight / currentRows;
+
     if (!hasEnteredLabyrinth) {
         activeGrid[entranceCoord.r][entranceCoord.c] = 0;
     }
-    let c = Math.floor(x / cellWidth);
-    let r = Math.floor(y / cellWidth);
 
-    if (c < 0 || c >= cols || r < 0 || r >= rows) return true;
+    let c = Math.floor(x / cWidth);
+    let r = Math.floor(y / cHeight);
+
+    if (c < 0 || c >= currentCols || r < 0 || r >= currentRows) return true;
     return activeGrid[r][c] === 1;
 }
 
@@ -674,39 +628,54 @@ function gameLoop() {
             let nextX = playerX + rawDx + slipX;
             let nextY = playerY + rawDy + slipY;
 
-            // Strict collision check across the board
-            if (!checkWallCollision(nextX, nextY)) {
+            if (!hasEnteredLabyrinth) {
+                // Restrict movement outside strictly toward entrance, preventing walking around perimeter
                 playerX = nextX;
                 playerY = nextY;
-            } else {
-                if (!checkWallCollision(nextX, playerY)) playerX = nextX;
-                if (!checkWallCollision(playerX, nextY)) playerY = nextY;
-            }
 
-            // Check if player crossed threshold from outside into the labyrinth interior
-            if (!hasEnteredLabyrinth) {
-                let ec = entranceCoord.c * cellWidth;
-                let er = entranceCoord.r * cellWidth;
-                // If player is now inside the maze bounds and past the perimeter edge
-                if (playerX >= 10 && playerX <= mazeWidth - 10 && playerY >= 10 && playerY <= mazeWidth - 10) {
+                // Threshold: after moving 2 blocks inside the maze bounds, seal entrance and start triggers
+                let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
+                let currentRows = activeGrid.length;
+                let currentCols = activeGrid[0].length;
+                let cWidth = mazeCanvasWidth / currentCols;
+                let cHeight = mazeCanvasHeight / currentRows;
+                let ec = entranceCoord.c * cWidth;
+                let er = entranceCoord.r * cWidth;
+
+                if (playerX >= 15 && playerX <= mazeCanvasWidth - 15 && playerY >= 15 && playerY <= mazeCanvasHeight - 15) {
                     hasEnteredLabyrinth = true;
-                    drawTrueLabyrinth(true); // Snap entrance door shut behind player
+                    drawRectangularLabyrinth(true); // Close entrance door behind player
                     document.getElementById('maze-ui').style.display = 'block';
                     startMainTimer();
                     startGleamTimer();
                     spawnInitialOrbs();
                 }
             } else {
+                if (!checkWallCollision(nextX, nextY)) {
+                    playerX = nextX;
+                    playerY = nextY;
+                } else {
+                    if (!checkWallCollision(nextX, playerY)) playerX = nextX;
+                    if (!checkWallCollision(playerX, nextY)) playerY = nextY;
+                }
                 checkOrbCollection();
             }
 
-            // Check if player reached the central chamber destination
-            let midR = Math.floor(rows / 2);
-            let midC = Math.floor(cols / 2);
-            let chamberMinX = (midC - 1) * cellWidth;
-            let chamberMaxX = (midC + 2) * cellWidth;
-            let chamberMinY = (midR - 1) * cellWidth;
-            let chamberMaxY = (midR + 2) * cellWidth;
+            // Redraw labyrinth frame to render player aura tint overlay on rusted metal walls dynamically
+            drawRectangularLabyrinth(hasEnteredLabyrinth);
+
+            // Check if player reached central chamber destination
+            let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
+            let currentRows = activeGrid.length;
+            let currentCols = activeGrid[0].length;
+            let cWidth = mazeCanvasWidth / currentCols;
+            let cHeight = mazeCanvasHeight / currentRows;
+            let midR = Math.floor(currentRows / 2);
+            let midC = Math.floor(currentCols / 2);
+            let chamberMinX = (midC - 1) * cWidth;
+            let chamberMaxX = (midC + 2) * cWidth;
+            let chamberMinY = (midR - 1) * cHeight;
+            let chamberMaxY = (midR + 2) * cHeight;
 
             if (hasEnteredLabyrinth && playerX >= chamberMinX && playerX <= chamberMaxX &&
                 playerY >= chamberMinY && playerY <= chamberMaxY) {
@@ -717,7 +686,7 @@ function gameLoop() {
 
                 if (lvl1Round < lvl1MaxRounds) {
                     lvl1Round++;
-                    gameTimer = roundTimes[lvl1Round - 1]; // Round duration: 1m, 2m, 3m
+                    gameTimer = roundTimes[lvl1Round - 1]; // Escalating Round Timers: 1m, 2m, 3m
                     glowTimeRemaining = 40;
                     setupPerimeterRound();
                     document.getElementById('lvl1-round-display').innerText = lvl1Round;
@@ -726,7 +695,7 @@ function gameLoop() {
                     let secs = gameTimer % 60;
                     document.getElementById('timer-display').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 
-                    drawTrueLabyrinth(false);
+                    drawRectangularLabyrinth(false);
 
                     const playerCircle = document.getElementById('player-circle');
                     playerCircle.style.left = `${playerX}px`;
@@ -762,7 +731,7 @@ function gameLoop() {
 
                         transitionContent.innerHTML = `
                             <p style="font-size: 18px; color: #00ffcc; margin-bottom: 20px;">LEVEL 1: SOURCE CONNECTION ESTABLISHED</p>
-                            <p>You have successfully navigated all 3 complex rotating labyrinth rounds.</p>
+                            <p>You have successfully navigated all 3 complex rotating rectangular labyrinth rounds.</p>
                             <div style="background: #1a1a22; padding: 15px 25px; border-radius: 4px; border: 1px solid #b87333; margin: 20px 0; font-size: 15px; text-align: left;">
                                 -> Total Orbs Collected: <strong>${totalOrbsCollected}</strong><br>
                                 -> Final Calculated Power Rating (Total ÷ 4): <strong>${finalCalculatedOrbs}</strong>
@@ -1687,8 +1656,8 @@ function updateLvl3HUDMetrics() {
 }
 
 function handleLvl3RoundEnd() {
-    lvl2GameActive = false;
-    cancelAnimationFrame(lvl2AnimationFrameId);
+    lvl3GameActive = false;
+    cancelAnimationFrame(lvl3AnimationFrameId);
     
     if (lvl3Round < lvl3MaxRounds) {
         lvl3Round++;
