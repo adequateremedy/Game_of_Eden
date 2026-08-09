@@ -801,11 +801,11 @@ let lvl2AnimationFrameId;
 
 let lvl2Items = [];
 let lvl2Frames = 0;
+let lvl2TotalFrames = 0; 
 
 let lvl2CurrentKinetic = 0;
 let lvl2AccumulatedKinetic = 0;
 let lvl2KineticTicks = 0;
-
 let lvl2TotalDistanceMoved = 0;
 
 const lvl2Player = {
@@ -838,6 +838,7 @@ function startLevel2() {
     lvl2Round = 1;
     lvl2AccumulatedKinetic = 0;
     lvl2KineticTicks = 0;
+    lvl2TotalFrames = 0; 
     lvl2Player.speed = lvl2Player.baseSpeed;
     
     startLvl2Round();
@@ -865,6 +866,7 @@ function restartLvl2Round1() {
     
     lvl2AccumulatedKinetic = 0;
     lvl2KineticTicks = 0;
+    lvl2TotalFrames = 0; 
     lvl2Player.speed = lvl2Player.baseSpeed;
     lvl2Player.overclockTimer = 0;
     lvl2Player.glitchTimer = 0;
@@ -872,7 +874,20 @@ function restartLvl2Round1() {
     
     for (let key in keys) { keys[key] = false; }
     
+    lvl2Round = 1;
     startLvl2Round();
+}
+
+function triggerLvl2Fail() {
+    lvl2GameActive = false;
+    cancelAnimationFrame(lvl2AnimationFrameId);
+    
+    const warningScreen = document.getElementById("lvl2WarningScreen");
+    const warningText = warningScreen.querySelector("p");
+    if (warningText) {
+        warningText.innerText = "Your momentum has completely stalled (Velocity reached 0). The connection has been lost.";
+    }
+    warningScreen.style.display = "flex";
 }
 
 function updateLvl2PlayerLogic() {
@@ -928,19 +943,32 @@ function updateLvl2PlayerLogic() {
     }
     
     lvl2Frames++;
+    lvl2TotalFrames++; 
     
-    // Scale Difficulty based on round
-    // Spawns slightly faster each round
-    let spawnFreq = Math.floor(120 / (1 + (lvl2Round - 1) * 0.4));
-    // Speed jumps drastically each round (75% increase per round)
-    let itemSpeed = 3.5 * (1 + (lvl2Round - 1) * 0.75);
-    // Size shrinks by 50% each round: 100% -> 50% -> 25%
-    let itemRadius = 12 / Math.pow(2, lvl2Round - 1); 
+    // Smooth continuous speed scaling across the entire level
+    // Multiplier increases by 1.0 roughly every 60 seconds (3600 frames at 60fps)
+    let speedMultiplier = 1.0 + (lvl2TotalFrames / 3600); 
+    
+    let spawnFreq = Math.floor(120 / speedMultiplier);
+    if (spawnFreq < 15) spawnFreq = 15; // Hard cap so it remains physically possible
+    
+    let itemSpeed = 3.5 * speedMultiplier;
+    let itemRadius = 12; // Size remains completely constant
     
     if (lvl2Frames % spawnFreq === 0) {
         let isSpark = Math.random() > 0.5;
+        let spawnX;
+        
+        if (isSpark) {
+            // Positive synapses spawn randomly
+            spawnX = Math.random() * (lvl2Canvas.width - 40) + 20;
+        } else {
+            // Negative synapses lock directly onto the player's current X coordinate
+            spawnX = lvl2Player.x;
+        }
+        
         lvl2Items.push({
-            x: Math.random() * (lvl2Canvas.width - 40) + 20,
+            x: spawnX,
             y: -20,
             type: isSpark ? 'spark' : 'anchor',
             radius: itemRadius,
@@ -962,11 +990,16 @@ function updateLvl2PlayerLogic() {
                 lvl2Player.overclockTimer = 120; // 2 seconds Hyper-Dash
             } else {
                 lvl2Player.speed -= 1.5; 
-                if (lvl2Player.speed < 2.0) lvl2Player.speed = 2.0; 
                 lvl2Player.glitchTimer = 60; // 1 second Glitch Stutter
             }
             
             lvl2Items.splice(i, 1);
+            
+            // Instantly fail if player velocity drops to 0 or below
+            if (lvl2Player.speed <= 0) {
+                triggerLvl2Fail();
+                return;
+            }
             continue;
         }
         
@@ -1077,11 +1110,6 @@ function handleLvl2RoundEnd() {
     lvl2GameActive = false;
     cancelAnimationFrame(lvl2AnimationFrameId);
     
-    if (lvl2Round === 1 && lvl2TotalDistanceMoved === 0) {
-        document.getElementById("lvl2WarningScreen").style.display = "flex";
-        return;
-    }
-    
     if (lvl2Round < lvl2MaxRounds) {
         lvl2Round++;
         startLvl2Round();
@@ -1129,7 +1157,9 @@ function lvl2GameLoop() {
     drawLvl2Screen();
     updateLvl2HUD();
     
-    lvl2AnimationFrameId = requestAnimationFrame(lvl2GameLoop);
+    if (lvl2GameActive) {
+        lvl2AnimationFrameId = requestAnimationFrame(lvl2GameLoop);
+    }
 }
 
 
