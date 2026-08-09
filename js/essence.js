@@ -108,7 +108,7 @@ function playAudio(src) {
 }
 
 // ==========================================
-// LEVEL 1: ESSENCE DEVELOPMENT (TRUE MULTI-PATH LABYRINTH W/ OUTSIDE SPOWN)
+// LEVEL 1: ESSENCE DEVELOPMENT (PROCEDURAL INDUSTRIAL & ELEMENTAL WALLS)
 // ==========================================
 const loreData = [
     `Your Agni Essence embodies an intense, consuming passion that ignites creativity and drives ambition forward with unstoppable momentum. This fierce energy easily spills over into a volatile, explosive anger when restricted, burning through boundaries with sharp impatience. Yet, beneath the aggression lies a warm, radiant joy that offers comfort, protection, and deep inspiration to those nearby. It also carries a sharp, critical judgment, fiercely cutting away falsehoods to seek absolute purity and truth. Finally, it harbors a restless anxiety, a constant, flickering fear of depletion that forces it to always seek new fuel to sustain its brilliant light.`,
@@ -132,7 +132,7 @@ let playerRadius = 3.5;
 let playerActive = false;
 let keys = {};
 
-const roundTimes = [60, 120, 180];
+const roundTimes = [60, 120, 180]; // Round 1 = 1m, Round 2 = 2m, Round 3 = 3m
 let gameTimer = 60;
 let timerInterval = null;
 let totalOrbsCollected = 0;
@@ -278,7 +278,7 @@ function finishSelection() {
         
         generateBraidedLabyrinth();
         setupPerimeterRound();
-        drawTrueLabyrinth(false);
+        drawProceduralLabyrinth(false);
 
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
@@ -389,56 +389,145 @@ function setupPerimeterRound() {
 
     entranceCoord = { r: targetRow, c: targetCol };
 
-    // Ensure entrance cell and adjacent inner cell are clear path
-    baseMazeGrid[targetRow][targetCol] = 0; 
+    // Clear entrance cell so door is open
+    let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
+    activeGrid[entranceCoord.r][entranceCoord.c] = 0;
 
-    // Position player SAFELY OUTSIDE the perimeter wall
+    // Position player cleanly outside the perimeter wall
     if (currentPos === 0) {
         playerX = targetCol * cellWidth + cellWidth / 2;
-        playerY = -12; // Clearly outside top boundary
+        playerY = -14; 
     } else if (currentPos === 1) {
-        playerX = -12; // Clearly outside left boundary
+        playerX = -14; 
         playerY = targetRow * cellWidth + cellWidth / 2;
     } else if (currentPos === 2) {
         playerX = targetCol * cellWidth + cellWidth / 2;
-        playerY = mazeWidth + 12; // Clearly outside bottom boundary
+        playerY = mazeWidth + 14; 
     } else {
-        playerX = mazeWidth + 12; // Clearly outside right boundary
+        playerX = mazeWidth + 14; 
         playerY = targetRow * cellWidth + cellWidth / 2;
     }
 }
 
-function drawTrueLabyrinth(sealed) {
+// Procedural Industrial/Elemental Texturing per Element & Wall Type
+function drawProceduralLabyrinth(sealed) {
     const canvas = document.getElementById('mazeCanvas');
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
+    if (sealed) {
+        activeGrid[entranceCoord.r][entranceCoord.c] = 1; // Snap entrance door shut
+    }
 
     ctx.save();
-    ctx.strokeStyle = selectedColorHex;
-    ctx.lineWidth = 2;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = selectedColorHex;
-
+    
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-            // Draw wall unless it is the currently open entrance door before player enters
-            let isEntrance = (r === entranceCoord.r && c === entranceCoord.c);
-            if (activeGrid[r][c] === 1 || (isEntrance && sealed)) {
-                ctx.fillStyle = 'rgba(18, 18, 24, 0.95)';
-                ctx.fillRect(c * cellWidth, r * cellWidth, cellWidth, cellWidth);
-                ctx.strokeRect(c * cellWidth, r * cellWidth, cellWidth, cellWidth);
+            let isPerimeter = (r === 0 || r === rows - 1 || c === 0 || c === cols - 1);
+            let isWall = (activeGrid[r][c] === 1);
+            let x = c * cellWidth;
+            let y = r * cellWidth;
+
+            if (isWall) {
+                ctx.save();
+                ctx.translate(x, y);
+
+                if (chosenMazeIndex === 0) {
+                    // AGNI: Lava outside perimeter, hardened Magma/Obsidian inside walls
+                    if (isPerimeter) {
+                        ctx.fillStyle = '#b32400';
+                        ctx.fillRect(0, 0, cellWidth, cellWidth);
+                        ctx.fillStyle = '#ff471a';
+                        ctx.fillRect(3, 3, cellWidth - 6, cellWidth - 6);
+                        ctx.fillStyle = '#ffcc00';
+                        ctx.fillRect(cellWidth/2 - 2, cellWidth/2 - 2, 4, 4);
+                    } else {
+                        ctx.fillStyle = '#261a14';
+                        ctx.fillRect(0, 0, cellWidth, cellWidth);
+                        ctx.strokeStyle = '#b33600';
+                        ctx.lineWidth = 1.5;
+                        ctx.strokeRect(1, 1, cellWidth - 2, cellWidth - 2);
+                        ctx.fillStyle = '#ff3300';
+                        ctx.fillRect(cellWidth/2 - 1.5, cellWidth/2 - 1.5, 3, 3);
+                    }
+                } else if (chosenMazeIndex === 1) {
+                    // JALA: Thick Frost/Ice outside perimeter, cascading Water/Fluid streams inside walls
+                    if (isPerimeter) {
+                        ctx.fillStyle = '#b3d9ff';
+                        ctx.fillRect(0, 0, cellWidth, cellWidth);
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(2, 2, cellWidth - 4, cellWidth - 4);
+                    } else {
+                        ctx.fillStyle = '#003366';
+                        ctx.fillRect(0, 0, cellWidth, cellWidth);
+                        ctx.strokeStyle = '#3399ff';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.moveTo(cellWidth/2, 0);
+                        ctx.lineTo(cellWidth/2, cellWidth);
+                        ctx.stroke();
+                    }
+                } else if (chosenMazeIndex === 2) {
+                    // PRITHVI: Weathered Ancient Stone outside, organic Vine & Root plant walls inside
+                    if (isPerimeter) {
+                        ctx.fillStyle = '#595959';
+                        ctx.fillRect(0, 0, cellWidth, cellWidth);
+                        ctx.strokeStyle = '#383838';
+                        ctx.strokeRect(1, 1, cellWidth - 2, cellWidth - 2);
+                    } else {
+                        ctx.fillStyle = '#264d00';
+                        ctx.fillRect(0, 0, cellWidth, cellWidth);
+                        ctx.strokeStyle = '#66cc00';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(cellWidth/2, cellWidth/2, cellWidth/3, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                } else if (chosenMazeIndex === 3) {
+                    // VAYU: Weathered Brass & Iron outside, Compressed Steam / Pneumatic Pipe walls inside
+                    if (isPerimeter) {
+                        ctx.fillStyle = '#996633';
+                        ctx.fillRect(0, 0, cellWidth, cellWidth);
+                        ctx.strokeStyle = '#cc9900';
+                        ctx.lineWidth = 1.5;
+                        ctx.strokeRect(1, 1, cellWidth - 2, cellWidth - 2);
+                    } else {
+                        ctx.fillStyle = '#404040';
+                        ctx.fillRect(0, 0, cellWidth, cellWidth);
+                        ctx.strokeStyle = '#b3b3b3';
+                        ctx.lineWidth = 1.5;
+                        ctx.strokeRect(3, 3, cellWidth - 6, cellWidth - 6);
+                        ctx.fillStyle = '#e6e6e6';
+                        ctx.fillRect(cellWidth/2 - 2, cellWidth/2 - 2, 4, 4);
+                    }
+                }
+
+                ctx.restore();
             }
         }
     }
 
-    // Highlight Central Chamber Destination
+    // Highlight Central Chamber Destination (Steampunk Core Mechanism aesthetic)
     let midR = Math.floor(rows / 2);
     let midC = Math.floor(cols / 2);
-    ctx.fillStyle = selectedColorHex;
-    ctx.shadowBlur = 20;
-    ctx.fillRect((midC - 1) * cellWidth + 2, (midR - 1) * cellWidth + 2, (cellWidth * 3) - 4, (cellWidth * 3) - 4);
+    let cx = (midC - 1) * cellWidth;
+    let cy = (midR - 1) * cellWidth;
+    let cSize = cellWidth * 3;
+
+    ctx.fillStyle = '#2b1d0c';
+    ctx.fillRect(cx, cy, cSize, cSize);
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(cx, cy, cSize, cSize);
+
+    // Inner brass gear/core marker
+    ctx.beginPath();
+    ctx.arc(cx + cSize/2, cy + cSize/2, cellWidth * 0.8, 0, Math.PI * 2);
+    ctx.strokeStyle = '#b8860b';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
 
     ctx.restore();
 }
@@ -555,6 +644,10 @@ function checkOrbCollection() {
 
 function checkWallCollision(x, y) {
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
+    // If player hasn't entered yet, entrance door is open
+    if (!hasEnteredLabyrinth) {
+        activeGrid[entranceCoord.r][entranceCoord.c] = 0;
+    }
     let c = Math.floor(x / cellWidth);
     let r = Math.floor(y / cellWidth);
 
@@ -581,25 +674,33 @@ function gameLoop() {
             let nextX = playerX + rawDx + slipX;
             let nextY = playerY + rawDy + slipY;
 
-            if (!hasEnteredLabyrinth) {
-                // Free movement outside until player crosses inside maze bounds
-                if (nextX >= 0 && nextX <= mazeWidth && nextY >= 0 && nextY <= mazeWidth) {
-                    hasEnteredLabyrinth = true;
-                    drawTrueLabyrinth(true); // Snap entrance door shut
-                    document.getElementById('maze-ui').style.display = 'block';
-                    startMainTimer();
-                    startGleamTimer();
-                    spawnInitialOrbs();
-                }
+            // Strict collision check across the board
+            if (!checkWallCollision(nextX, nextY)) {
                 playerX = nextX;
                 playerY = nextY;
             } else {
                 if (!checkWallCollision(nextX, playerY)) playerX = nextX;
                 if (!checkWallCollision(playerX, nextY)) playerY = nextY;
+            }
+
+            // Check if player crossed threshold from outside into the labyrinth interior
+            if (!hasEnteredLabyrinth) {
+                let ec = entranceCoord.c * cellWidth;
+                let er = entranceCoord.r * cellWidth;
+                // If player is now inside the maze bounds and past the perimeter edge
+                if (playerX >= 10 && playerX <= mazeWidth - 10 && playerY >= 10 && playerY <= mazeWidth - 10) {
+                    hasEnteredLabyrinth = true;
+                    drawTrueLabyrinth(true); // Snap entrance door shut behind player
+                    document.getElementById('maze-ui').style.display = 'block';
+                    startMainTimer();
+                    startGleamTimer();
+                    spawnInitialOrbs();
+                }
+            } else {
                 checkOrbCollection();
             }
 
-            // Check if player reached central chamber destination
+            // Check if player reached the central chamber destination
             let midR = Math.floor(rows / 2);
             let midC = Math.floor(cols / 2);
             let chamberMinX = (midC - 1) * cellWidth;
@@ -1586,8 +1687,8 @@ function updateLvl3HUDMetrics() {
 }
 
 function handleLvl3RoundEnd() {
-    lvl3GameActive = false;
-    cancelAnimationFrame(lvl3AnimationFrameId);
+    lvl2GameActive = false;
+    cancelAnimationFrame(lvl2AnimationFrameId);
     
     if (lvl3Round < lvl3MaxRounds) {
         lvl3Round++;
