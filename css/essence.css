@@ -409,7 +409,7 @@ body, html {
 
 
 /* =========================================
-   LEVEL 2 CSS (STATES OF MATTER)
+   LEVEL 2 CSS
    ========================================= */
 
 #level2-container {
@@ -430,110 +430,15 @@ body, html {
     --core-color: #00ffcc; /* Dynamically injected by JS */
 }
 
-/* Base style for the background layers */
-#level2-container::before, #level2-container::after {
-    pointer-events: none;
+/* Dedicated Background Canvas for Transformative States */
+#lvl2BgCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     z-index: 0;
-}
-
-/* STATE 1: SOLID (Rigid & Bound) */
-#level2-container.state-round-1::before {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: 
-        linear-gradient(rgba(11, 11, 13, 0.8), rgba(11, 11, 13, 0.8)),
-        repeating-linear-gradient(45deg, var(--core-color) 0%, transparent 2%, transparent 10%),
-        repeating-linear-gradient(-45deg, var(--core-color) 0%, transparent 2%, transparent 10%);
-    opacity: 0.15;
-    animation: solidPulse 4s infinite alternate ease-in-out;
-}
-@keyframes solidPulse {
-    0% { opacity: 0.1; transform: scale(1); }
-    100% { opacity: 0.25; transform: scale(1.02); }
-}
-
-/* STATE 2: LIQUID (Fluid & Flowing) */
-#level2-container.state-round-2::before,
-#level2-container.state-round-2::after {
-    content: "";
-    position: absolute;
-    width: 150vw; height: 150vh;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: 
-        radial-gradient(circle at 30% 40%, var(--core-color) 0%, transparent 40%),
-        radial-gradient(circle at 70% 60%, var(--core-color) 0%, transparent 40%);
-    opacity: 0.25;
-    animation: liquidFlow 6s infinite alternate ease-in-out;
-    mix-blend-mode: screen;
-}
-#level2-container.state-round-2::after {
-    background: 
-        radial-gradient(circle at 60% 30%, var(--core-color) 0%, transparent 50%),
-        radial-gradient(circle at 40% 70%, var(--core-color) 0%, transparent 50%);
-    animation: liquidFlow 8s infinite alternate-reverse ease-in-out;
-    opacity: 0.2;
-}
-@keyframes liquidFlow {
-    0% { transform: translate(-50%, -50%) rotate(0deg) scale(0.9); }
-    100% { transform: translate(-50%, -50%) rotate(15deg) scale(1.1); }
-}
-
-/* STATE 3: GAS (Dispersed & Fast) */
-#level2-container.state-round-3::before,
-#level2-container.state-round-3::after {
-    content: "";
-    position: absolute;
-    width: 200vw; height: 200vh;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: radial-gradient(ellipse at center, var(--core-color) 0%, transparent 60%);
-    opacity: 0.15;
-    mix-blend-mode: screen;
-    animation: gasDrift 3s infinite linear;
-}
-#level2-container.state-round-3::after {
-    width: 250vw; height: 250vh;
-    animation: gasDrift 4s infinite reverse linear;
-    opacity: 0.1;
-}
-@keyframes gasDrift {
-    0% { transform: translate(-40%, -40%) scale(1); }
-    50% { transform: translate(-60%, -60%) scale(1.2); }
-    100% { transform: translate(-40%, -40%) scale(1); }
-}
-
-/* STATE 4: PLASMA (Violent & High-Energy) */
-#level2-container.state-round-4::before {
-    content: "";
-    position: absolute;
-    width: 100vw; height: 100vh;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: radial-gradient(circle, var(--core-color) 0%, transparent 70%);
-    opacity: 0.4;
-    animation: plasmaFlicker 0.15s infinite;
-    mix-blend-mode: screen;
-}
-#level2-container.state-round-4::after {
-    content: "";
-    position: absolute;
-    width: 120vw; height: 120vh;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: repeating-radial-gradient(circle, var(--core-color) 0%, transparent 10%, var(--core-color) 20%);
-    opacity: 0.2;
-    animation: plasmaPulse 0.5s infinite alternate;
-    mix-blend-mode: color-dodge;
-}
-@keyframes plasmaFlicker {
-    0% { opacity: 0.2; transform: translate(-50%, -50%) scale(0.95); }
-    100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.05); }
-}
-@keyframes plasmaPulse {
-    0% { transform: translate(-50%, -50%) scale(1); }
-    100% { transform: translate(-50%, -50%) scale(1.2); }
+    pointer-events: none;
 }
 
 /* Keep internal UI and Canvas above the animated background */
