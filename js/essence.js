@@ -1240,6 +1240,10 @@ function handleLvl3Complete() {
 function showFinalDiscovery() {
     document.getElementById("lvl3ResultsScreen").style.display = "none";
     document.getElementById("finalDiscoveryDisplay").innerHTML = buildFinalDiscoverySheet();
+    
+    document.getElementById("finalDiscoveryHeader").style.color = selectedColorHex;
+    document.getElementById("finalDiscoveryDisplay").style.color = selectedColorHex;
+    
     document.getElementById("finalDiscoveryScreen").style.display = "flex";
 }
 
