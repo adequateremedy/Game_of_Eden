@@ -824,6 +824,7 @@ const lvl2Player = {
 function startLevel2() {
     if (selectedColorHex) {
         lvl2Player.color = selectedColorHex;
+        document.getElementById('level2-container').style.setProperty('--core-color', selectedColorHex);
     }
     
     playAudio('assets/Merciless Engines.mp3');
