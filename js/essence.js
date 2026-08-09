@@ -108,7 +108,7 @@ function playAudio(src) {
 }
 
 // ==========================================
-// LEVEL 1: ESSENCE DEVELOPMENT (RECTANGULAR LABYRINTH, RUSTED METAL + PLAYER TINT, 3 PATHS, ESCALATING DEAD ENDS & TIMERS)
+// LEVEL 1: ESSENCE DEVELOPMENT (RECTANGULAR LABYRINTH, BRUSHED STEEL + RUSTED EDGES, 3 PATHS, ESCALATING DEAD ENDS & TIMERS)
 // ==========================================
 const loreData = [
     `Your Agni Essence embodies an intense, consuming passion that ignites creativity and drives ambition forward with unstoppable momentum. This fierce energy easily spills over into a volatile, explosive anger when restricted, burning through boundaries with sharp impatience. Yet, beneath the aggression lies a warm, radiant joy that offers comfort, protection, and deep inspiration to those nearby. It also carries a sharp, critical judgment, fiercely cutting away falsehoods to seek absolute purity and truth. Finally, it harbors a restless anxiety, a constant, flickering fear of depletion that forces it to always seek new fuel to sustain its brilliant light.`,
@@ -147,7 +147,8 @@ const mazeCanvasWidth = 520;
 const mazeCanvasHeight = 380;
 const cols = 26; 
 const rows = 19;
-const cellWidth = mazeCanvasWidth / cols; // 20px per cell
+const cWidth = mazeCanvasWidth / cols;   // 20px
+const cHeight = mazeCanvasHeight / rows; // ~20px
 let baseMazeGrid = [];
 
 window.addEventListener('keydown', (e) => {
@@ -397,19 +398,18 @@ function setupPerimeterRound() {
     activeGrid[entranceCoord.r][entranceCoord.c] = 0; // Open door
 
     // Position player strictly 1 block outside the entrance door
-    let offset = cellWidth;
     if (currentPos === 0) {
-        playerX = targetCol * cellWidth + cellWidth / 2;
-        playerY = -offset;
+        playerX = targetCol * cWidth + cWidth / 2;
+        playerY = -cHeight / 2;
     } else if (currentPos === 1) {
-        playerX = -offset;
-        playerY = targetRow * cellWidth + cellWidth / 2;
+        playerX = -cWidth / 2;
+        playerY = targetRow * cHeight + cHeight / 2;
     } else if (currentPos === 2) {
-        playerX = targetCol * cellWidth + cellWidth / 2;
-        playerY = mazeCanvasHeight + offset;
+        playerX = targetCol * cWidth + cWidth / 2;
+        playerY = mazeCanvasHeight + cHeight / 2;
     } else {
-        playerX = mazeCanvasWidth + offset;
-        playerY = targetRow * cellWidth + cellWidth / 2;
+        playerX = mazeCanvasWidth + cWidth / 2;
+        playerY = targetRow * cHeight + cHeight / 2;
     }
 }
 
@@ -421,8 +421,8 @@ function drawRectangularLabyrinth(sealed) {
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
     let currentRows = activeGrid.length;
     let currentCols = activeGrid[0].length;
-    let cWidth = mazeCanvasWidth / currentCols;
-    let cHeight = mazeCanvasHeight / currentRows;
+    let curW = mazeCanvasWidth / currentCols;
+    let curH = mazeCanvasHeight / currentRows;
 
     if (sealed) {
         activeGrid[entranceCoord.r][entranceCoord.c] = 1; // Close entrance door
@@ -433,26 +433,28 @@ function drawRectangularLabyrinth(sealed) {
     for (let r = 0; r < currentRows; r++) {
         for (let c = 0; c < currentCols; c++) {
             let isWall = (activeGrid[r][c] === 1);
-            let x = c * cWidth;
-            let y = r * cHeight;
+            let x = c * curW;
+            let y = r * curH;
 
             if (isWall) {
-                // Rusted Metal Texture Base
-                ctx.fillStyle = '#6b3a2a';
-                ctx.fillRect(x, y, cWidth, cHeight);
-                ctx.strokeStyle = '#3d1f14';
+                // Brushed Steel Base
+                ctx.fillStyle = '#4a4a52';
+                ctx.fillRect(x, y, curW, curH);
+
+                // Subtle fine rust and steel grain accents strictly around the edges
+                ctx.strokeStyle = '#8a3b14';
                 ctx.lineWidth = 1.5;
-                ctx.strokeRect(x, y, cWidth, cHeight);
+                ctx.strokeRect(x + 0.5, y + 0.5, curW - 1, curH - 1);
 
                 // Check distance to player for semitransparent aura tint overlay
-                let centerX = x + cWidth / 2;
-                let centerY = y + cHeight / 2;
+                let centerX = x + curW / 2;
+                let centerY = y + curH / 2;
                 let dist = Math.sqrt((playerX - centerX)**2 + (playerY - centerY)**2);
-                if (dist < 80) {
-                    let alpha = (1 - (dist / 80)) * 0.45; // Semitransparent essence overlay
+                if (dist < 75) {
+                    let alpha = (1 - (dist / 75)) * 0.4; // Semitransparent essence overlay
                     ctx.fillStyle = selectedColorHex;
                     ctx.globalAlpha = alpha;
-                    ctx.fillRect(x, y, cWidth, cHeight);
+                    ctx.fillRect(x, y, curW, curH);
                     ctx.globalAlpha = 1.0;
                 }
             }
@@ -462,10 +464,10 @@ function drawRectangularLabyrinth(sealed) {
     // Highlight Central Chamber Destination
     let midR = Math.floor(currentRows / 2);
     let midC = Math.floor(currentCols / 2);
-    let cx = (midC - 1) * cWidth;
-    let cy = (midR - 1) * cHeight;
-    let cSizeW = cWidth * 3;
-    let cSizeH = cHeight * 3;
+    let cx = (midC - 1) * curW;
+    let cy = (midR - 1) * curH;
+    let cSizeW = curW * 3;
+    let cSizeH = curH * 3;
 
     ctx.fillStyle = '#2b1d0c';
     ctx.fillRect(cx, cy, cSizeW, cSizeH);
@@ -541,8 +543,8 @@ function spawnSingleOrb() {
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
     let currentRows = activeGrid.length;
     let currentCols = activeGrid[0].length;
-    let cWidth = mazeCanvasWidth / currentCols;
-    let cHeight = mazeCanvasHeight / currentRows;
+    let curW = mazeCanvasWidth / currentCols;
+    let curH = mazeCanvasHeight / currentRows;
 
     let rx, ry, valid = false;
     
@@ -550,8 +552,8 @@ function spawnSingleOrb() {
         let c = Math.floor(Math.random() * (currentCols - 4)) + 2;
         let r = Math.floor(Math.random() * (currentRows - 4)) + 2;
         if (activeGrid[r][c] === 0) {
-            rx = c * cWidth + cWidth / 2;
-            ry = r * cHeight + cHeight / 2;
+            rx = c * curW + curW / 2;
+            ry = r * curH + curH / 2;
             valid = true;
         }
     }
@@ -568,6 +570,12 @@ function spawnSingleOrb() {
 }
 
 function checkOrbCollection() {
+    let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
+    let currentRows = activeGrid.length;
+    let currentCols = activeGrid[0].length;
+    let curW = mazeCanvasWidth / currentCols;
+    let curH = mazeCanvasHeight / currentRows;
+
     for (let i = activeOrbs.length - 1; i >= 0; i--) {
         let orb = activeOrbs[i];
         let dx = playerX - orb.x;
@@ -595,15 +603,15 @@ function checkWallCollision(x, y) {
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
     let currentRows = activeGrid.length;
     let currentCols = activeGrid[0].length;
-    let cWidth = mazeCanvasWidth / currentCols;
-    let cHeight = mazeCanvasHeight / currentRows;
+    let curW = mazeCanvasWidth / currentCols;
+    let curH = mazeCanvasHeight / currentRows;
 
     if (!hasEnteredLabyrinth) {
         activeGrid[entranceCoord.r][entranceCoord.c] = 0;
     }
 
-    let c = Math.floor(x / cWidth);
-    let r = Math.floor(y / cHeight);
+    let c = Math.floor(x / curW);
+    let r = Math.floor(y / curH);
 
     if (c < 0 || c >= currentCols || r < 0 || r >= currentRows) return true;
     return activeGrid[r][c] === 1;
@@ -628,21 +636,24 @@ function gameLoop() {
             let nextX = playerX + rawDx + slipX;
             let nextY = playerY + rawDy + slipY;
 
+            let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
+            let currentRows = activeGrid.length;
+            let currentCols = activeGrid[0].length;
+            let curW = mazeCanvasWidth / currentCols;
+            let curH = mazeCanvasHeight / currentRows;
+
             if (!hasEnteredLabyrinth) {
-                // Restrict movement outside strictly toward entrance, preventing walking around perimeter
+                // Restrict movement outside strictly toward the entrance door
                 playerX = nextX;
                 playerY = nextY;
 
-                // Threshold: after moving 2 blocks inside the maze bounds, seal entrance and start triggers
-                let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
-                let currentRows = activeGrid.length;
-                let currentCols = activeGrid[0].length;
-                let cWidth = mazeCanvasWidth / currentCols;
-                let cHeight = mazeCanvasHeight / currentRows;
-                let ec = entranceCoord.c * cWidth;
-                let er = entranceCoord.r * cWidth;
+                // Threshold: after moving at least 2 full blocks deep inside the labyrinth interior
+                let interiorMinX = curW * 2;
+                let interiorMaxX = mazeCanvasWidth - (curW * 2);
+                let interiorMinY = curH * 2;
+                let interiorMaxY = mazeCanvasHeight - (curH * 2);
 
-                if (playerX >= 15 && playerX <= mazeCanvasWidth - 15 && playerY >= 15 && playerY <= mazeCanvasHeight - 15) {
+                if (playerX >= interiorMinX && playerX <= interiorMaxX && playerY >= interiorMinY && playerY <= interiorMaxY) {
                     hasEnteredLabyrinth = true;
                     drawRectangularLabyrinth(true); // Close entrance door behind player
                     document.getElementById('maze-ui').style.display = 'block';
@@ -661,21 +672,16 @@ function gameLoop() {
                 checkOrbCollection();
             }
 
-            // Redraw labyrinth frame to render player aura tint overlay on rusted metal walls dynamically
+            // Redraw labyrinth frame to render player aura tint overlay on brushed steel walls dynamically
             drawRectangularLabyrinth(hasEnteredLabyrinth);
 
             // Check if player reached central chamber destination
-            let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
-            let currentRows = activeGrid.length;
-            let currentCols = activeGrid[0].length;
-            let cWidth = mazeCanvasWidth / currentCols;
-            let cHeight = mazeCanvasHeight / currentRows;
             let midR = Math.floor(currentRows / 2);
             let midC = Math.floor(currentCols / 2);
-            let chamberMinX = (midC - 1) * cWidth;
-            let chamberMaxX = (midC + 2) * cWidth;
-            let chamberMinY = (midR - 1) * cHeight;
-            let chamberMaxY = (midR + 2) * cHeight;
+            let chamberMinX = (midC - 1) * curW;
+            let chamberMaxX = (midC + 2) * curW;
+            let chamberMinY = (midR - 1) * curH;
+            let chamberMaxY = (midR + 2) * curH;
 
             if (hasEnteredLabyrinth && playerX >= chamberMinX && playerX <= chamberMaxX &&
                 playerY >= chamberMinY && playerY <= chamberMaxY) {
@@ -1656,8 +1662,8 @@ function updateLvl3HUDMetrics() {
 }
 
 function handleLvl3RoundEnd() {
-    lvl3GameActive = false;
-    cancelAnimationFrame(lvl3AnimationFrameId);
+    lvl2GameActive = false;
+    cancelAnimationFrame(lvl2AnimationFrameId);
     
     if (lvl3Round < lvl3MaxRounds) {
         lvl3Round++;
@@ -1668,14 +1674,14 @@ function handleLvl3RoundEnd() {
 }
 
 function handleLvl3Failure() {
-    lvl3GameActive = false;
-    cancelAnimationFrame(lvl3AnimationFrameId);
+    lvl2GameActive = false;
+    cancelAnimationFrame(lvl2AnimationFrameId);
     document.getElementById("lvl3FailureScreen").style.display = "flex";
 }
 
 function handleLvl3Complete() {
-    lvl3GameActive = false;
-    cancelAnimationFrame(lvl3AnimationFrameId);
+    lvl2GameActive = false;
+    cancelAnimationFrame(lvl2AnimationFrameId);
     
     window.playerStats.lvl3AvgRadius = lvl3AvgAccumulator / lvl3Ticks;
     
