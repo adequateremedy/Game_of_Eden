@@ -1192,9 +1192,13 @@ let lvl3Ticks = 0;
 
 let lvl3ElementColor = "#ff3366";
 
+// NEW: Variable to track rhythm intensity
+let lvl3LastTapTime = 0;
+
 function startLevel3() {
     if (selectedColorHex) {
         lvl3ElementColor = selectedColorHex;
+        document.getElementById('level3-container').style.setProperty('--core-color', selectedColorHex);
     }
 
     playAudio('assets/Voltz.mp3');
@@ -1219,6 +1223,7 @@ function startLvl3Round() {
     lvl3GameTimeLimit = lvl3RoundTimes[lvl3Round - 1];
     lvl3TimeRemaining = lvl3GameTimeLimit;
     lvl3StartTime = performance.now();
+    lvl3LastTapTime = performance.now();
     lvl3GameActive = true;
     lvl3GameLoop();
 }
@@ -1227,6 +1232,49 @@ function lvl3Tap() {
     if (!lvl3GameActive) return;
     lvl3CoreRadius -= lvl3TapCompression;
     if (lvl3CoreRadius < 15) lvl3CoreRadius = 15; 
+    
+    let now = performance.now();
+    let timeDiff = now - lvl3LastTapTime;
+    lvl3LastTapTime = now;
+    
+    // Intensity is calculated by how long the player waited to tap.
+    // Waiting 1.5 seconds (1500ms) will result in maximum shockwave intensity (1.0).
+    // Rapid mashing will result in a very small intensity.
+    let intensity = Math.min(timeDiff / 1500, 1.0);
+    
+    spawnShockwave(intensity);
+}
+
+function spawnShockwave(intensity) {
+    const layer = document.getElementById('lvl3ShockwaveLayer');
+    if (!layer) return;
+    
+    const wave = document.createElement('div');
+    wave.className = 'shockwave';
+    
+    // Base size before scaling
+    wave.style.width = '400px';
+    wave.style.height = '400px';
+    
+    // Scale controls the final physical size of the wave. 
+    let finalScale = 0.5 + (intensity * 3.5); 
+    // Duration dictates how fast it moves. Weak waves are fast (0.6s), strong waves are slow and heavy (1.4s).
+    let duration = 0.6 + (intensity * 0.8); 
+    // Thickness controls the bright border edge
+    let thickness = 2 + (intensity * 10);
+    
+    wave.style.setProperty('--max-scale', finalScale);
+    wave.style.borderWidth = `${thickness}px`;
+    wave.style.animation = `shockwaveExpand ${duration}s cubic-bezier(0.1, 0.8, 0.3, 1) forwards`;
+    
+    layer.appendChild(wave);
+    
+    // Cleanup div after animation finishes
+    setTimeout(() => {
+        if (wave.parentNode) {
+            wave.parentNode.removeChild(wave);
+        }
+    }, duration * 1000);
 }
 
 function updateLvl3SimulationLogic() {
