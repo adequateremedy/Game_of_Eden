@@ -959,7 +959,7 @@ function drawSynapse(ctx, x, y, radius, isPositive) {
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
     if (isPositive) {
-        ctx.fillStyle = 'rgba(50, 50, 50, 0.6)';
+        ctx.fillStyle = '#000000';
     } else {
         ctx.fillStyle = '#ffffff';
     }
@@ -977,7 +977,7 @@ function drawSynapse(ctx, x, y, radius, isPositive) {
         ctx.moveTo(0, -symbolSize);
         ctx.lineTo(0, symbolSize);
     } else {
-        ctx.strokeStyle = 'rgba(50, 50, 50, 0.6)';
+        ctx.strokeStyle = '#000000';
         ctx.moveTo(-symbolSize, 0);
         ctx.lineTo(symbolSize, 0);
     }
