@@ -1,97 +1,204 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bloodline Magic Awakened</title>
-    <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solus Dynasty RPG - Offensive Essence Discovery</title>
+<link rel="stylesheet" href="css/essence.css">
 </head>
 <body>
 
-    <!-- LEVEL 1: SOURCE CONNECTION -->
-    <div id="level1" class="screen active">
-        <div id="onboardingText1">
-            <h2>Puberty has triggered an imbalanced emotional vibration.</h2>
-            <p>To become "Coherent" you must:</p>
-            <ol>
-                <li>Stabilize your connection.</li>
-                <li>Tune your frequency.</li>
-                <li>Maintain your rhythm.</li>
-            </ol>
-            <p>Select the Aura that resonates with you:</p>
+<!-- LEVEL 1 CONTAINER -->
+<div id="level1-container">
+    <div id="background"></div>
+
+    <div id="title-container">
+        <h1>Offensive Essence Discovery</h1>
+    </div>
+
+    <button id="start-btn" onclick="startGame()">Start</button>
+
+    <!-- Popup Box -->
+    <div id="popup-box">
+        <div id="popup-content">
+            <p>You have triggered an imbalance of your emotional resonance. This force binds itself tightly to an elemental archetype, staining the air around you with a telltale Aura—a radiant chromatic signature that immediately exposes your Essence Type. The specific hue of this radiance acts as a visual signature, making your alignment immediately recognizable.
+
+However, an unguided spark is nothing but a hazard. Before this Energy can be weaponized as an offensive power, you must reach a state of absolute Coherency to solidify a solid Energy Signature. Acquiring Coherency requires three disciplined steps: 1. Forging an unshakeable conduit to the Source. 2. Tuning the Frequency of your power. 3.Governing its  pulse. To begin learning how to control this Energy, declare your Essence Type:</p>
+            <button class="btn" onclick="fadeTextOut()">Ok</button>
         </div>
+
+        <div id="selection-container">
+            <div id="circle-grid-container">
+                <div class="color-option" id="circle-0" onclick="selectCircle(0)">
+                    <div class="circle-btn" style="background-color: #ff0000;">Agni</div>
+                </div>
+                <div class="color-option" id="circle-1" onclick="selectCircle(1)">
+                    <div class="circle-btn" style="background-color: #0000ff;">Jala</div>
+                </div>
+                <div class="color-option" id="circle-2" onclick="selectCircle(2)">
+                    <div class="circle-btn" style="background-color: #00ff00;">Prithvi</div>
+                </div>
+                <div class="color-option" id="circle-3" onclick="selectCircle(3)">
+                    <div class="circle-btn" style="background-color: #ffff00; color: #000; text-shadow: none;">Vayu</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="result-container">
+            <div id="gliding-circle">
+                <div class="circle-btn" id="result-circle-node" style="width: 70px; height: 70px;"></div>
+            </div>
+            <div id="lore-text"></div>
+            <button class="btn" id="okay-btn" onclick="finishSelection()">Okay</button>
+        </div>
+
+        <div id="maze-container">
+            <div id="maze-wrapper" style="position: relative; width: 440px; height: 440px;">
+                <canvas id="mazeCanvas" width="440" height="440" style="background: transparent; position: absolute; top: 0; left: 0; display: block;"></canvas>
+                <div id="player-circle"></div>
+                <div id="orbs-layer"></div>
+            </div>
+            <!-- UI Header: Timer and Orb Counter -->
+            <div id="maze-ui" style="display: none;">
+                <span id="timer-display">5:00</span> | Orbs: <span id="orb-counter">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Second Separate Instruction Popup Box -->
+    <div id="maze-instruction-box">
+        <div id="maze-instruction-content">
+            <p>Source Connection
+
+Your emotions spike and the Energy it creates, begins to vibrate. Stabilized emotions give off a brighter Aura, proving that your Essence is maintaining its connection to the Source. 
+In order to maintain the connection to your Energy's Source, for Level 1, you must collect as many glowing, white orbs as you can and reach the center of this labyrinth in your mind, before the timer runs out OR your Aura fades.</p>
+            <button class="btn" onclick="closeMazeInstructions()">Alright</button>
+        </div>
+    </div>
+
+    <!-- Level 1 Results Popup Box -->
+    <div id="transition-popup-box">
+        <div id="transition-popup-content">
+            <!-- Injected dynamically by JS -->
+        </div>
+    </div>
+</div>
+
+<!-- LEVEL 2 CONTAINER -->
+<div id="level2-container">
+    <h1>Level 2: Resonating Magic</h1>
+    
+    <!-- External Top HUD Display -->
+    <div id="hudContainer">
+        <div class="hud-item">Time: <span id="timerValue" class="hud-value">60.0</span>s</div>
+        <div class="hud-item">Round: <span id="roundValue" class="hud-value">1/3</span></div>
+        <div class="hud-item">
+            Kinetic Output: 
+            <div id="kineticWrapper"><div id="kineticBar"></div></div>
+        </div>
+        <div class="hud-item">Velocity: <span id="velocityValue" class="hud-value" style="color:#ffcc00;">7.0</span></div>
+    </div>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
         
-        <div class="circle-container" id="circleContainer">
-            <div class="aura-circle agni" data-element="Agni" data-color="Red" data-emotion="passion/anger" onclick="selectAura(this)"></div>
-            <div class="aura-circle jala" data-element="Jala" data-color="Blue" data-emotion="empathy/sorrow" onclick="selectAura(this)"></div>
-            <div class="aura-circle prithvi" data-element="Prithvi" data-color="Green" data-emotion="confidence/stubbornness" onclick="selectAura(this)"></div>
-            <div class="aura-circle vayu" data-element="Vayu" data-color="Yellow" data-emotion="excitement/panic" onclick="selectAura(this)"></div>
+        <!-- Onboarding Screen -->
+        <div id="introScreen" class="screen-overlay">
+            <h2 style="color: #00ffcc; margin-top:0;">RESONATING MAGIC</h2>
+            <p>
+                Your connection to the Source of this Energy is locked in. Now, you have to find out how this Energy actually behaves when manipulated. 
+                <br><br>
+                As waves of raw Energy begin to rain down around you, you will need to catch the right emotional currents to tune it. Catch the Pink Positive Synapses to speed up the feeling of this Energy, or the Brown Negative Synapses to slow the momentum of this Energy. 
+                <br><br>
+                Don't just stand there—move! 
+                Every step you take, and every Synapse you catch, permanently shapes this Offensive Magic Power. 
+                <br><br>
+                At the end of Level 2, you will have tuned the Frequency—the unseen pitch that decides whether your Offensive Magic Power strikes with pin-point precision or wild unpredictability - of this Energy.
+            </p>
+            <button onclick="startLevel2()">Initialize Resonance</button>
         </div>
 
-        <div id="loreContainer" class="hidden">
-            <h3 id="loreTitle"></h3>
-            <p id="loreText"></p>
-            <button id="okBtn" onclick="showMazeInstructions()">Ok</button>
+        <!-- Anti-AFK Warning Screen -->
+        <div id="lvl2WarningScreen" class="screen-overlay" style="display: none; z-index: 300;">
+            <h2 style="color: #ff3366; margin-top:0; letter-spacing: 2px;">CALIBRATION FAILED</h2>
+            <p style="color: #fff; margin-bottom: 30px;">
+                In order to get an accurate reading, you have to actually MOVE.
+            </p>
+            <button onclick="restartLvl2Round1()">Restart Round 1</button>
         </div>
 
-        <div id="mazeInstructions" class="hidden">
-            <h2>Source Connection...</h2>
-            <p>Your emotions peak and the Energy it creates, begins to vibrate...</p>
-            <button onclick="startLevel1Game()">Okay</button>
-        </div>
-
-        <div id="level1Game" class="hidden">
-            <p>Collect 20 Orbs to stabilize your connection. (Click the orbs!)</p>
-            <p>Orbs Collected: <span id="orbCount">0</span></p>
-            <div id="orbArea"></div>
+        <!-- Level 2 Results Screen -->
+        <div id="resultsScreen" class="screen-overlay" style="display: none;">
+            <h2 style="color: #00ffcc; margin-top:0;">LEVEL 2: ESSENCE TUNING COMPLETE</h2>
+            <div class="math-breakdown" id="mathDisplay" style="text-align: left; font-size: 15px; line-height: 1.8;">
+                <!-- Filled dynamically by script -->
+            </div>
+            <button onclick="transitionToLevel3()">Proceed to Level 3</button>
         </div>
     </div>
+</div>
 
-    <div id="level1Result" class="screen hidden">
-        <h2>LEVEL 1: SOURCE CONNECTION ESTABLISHED</h2>
-        <p>You have successfully stabilized your Energy's connection to the Source.</p>
-        <button onclick="startLevel2()">Continue</button>
+<!-- LEVEL 3 CONTAINER -->
+<div id="level3-container">
+    <h1>Level 3: Finding Your Rhythm (Core Harmony)</h1>
+    
+    <!-- Top HUD Container Area -->
+    <div id="lvl3HudContainer">
+        <div class="lvl3-hud-item">Time Remaining: <span id="lvl3TimerValue" class="lvl3-hud-value">15.0</span>s</div>
+        <div class="lvl3-hud-item">Round: <span id="lvl3RoundValue" class="lvl3-hud-value">1/5</span></div>
+        <div class="lvl3-hud-item">Rhythm Integrity: <span id="lvl3IntegrityValue" class="lvl3-hud-value" style="color:#00ffcc;">STABLE</span></div>
     </div>
 
-    <!-- LEVEL 2: RESONATING MAGIC -->
-    <div id="level2" class="screen hidden">
-        <h2>Level 2: Resonating Magic</h2>
-        <p>Your connection to the Source of this Energy is locked in... catch the right emotional currents...</p>
-        <p>Catch Pink Positive Synapses (Spacebar) to increase Hz. Avoid Brown Negative Synapses.</p>
-        <p>Current Hz: <span id="hzCount">0</span></p>
-        <canvas id="synapseCanvas" width="600" height="400"></canvas>
-    </div>
+    <div id="lvl3GameContainer">
+        <canvas id="lvl3GameCanvas" width="800" height="450"></canvas>
+        <div id="lvl3Vignette"></div>
+        
+        <!-- Onboarding Screen -->
+        <div id="lvl3IntroScreen" class="lvl3-screen-overlay">
+            <h2 style="color: #ff3366; margin-top:0; letter-spacing:3px;">FINDING YOUR RHYTHM</h2>
+            <p>
+                Your Essence connection is securely anchored to the Source, and you have tuned into the Frequency of its power. Now comes the final, most dangerous feat: establishing an unbroken pulse, so that your Magic isn't as explosive as the attached emotions. The pressure is building, and if you let these feelings take over, the Energy's core will rupture and you won't be able to control it. 
+                <br><br>
+                You must <strong>TAP THE SPACEBAR</strong> (or click the screen) to create an unbroken rhythm; and control a potential explosion - both in your emotional state and Offensive Magic Power. 
+                <br><br>
+                In other words:
+                You must control your emotions, and prevent them from exploding throughout five escalating waves of pressure (moving from 15 seconds to 1 whole minute). How you balance your emotions through the pulse you create, is entirely up to you: compress it into a fast tempo, or let it fall into a steady, but efficient pace. Survive all five rounds of increasing pressure, and discover your specific Offensive Magic Power.
+            </p>
+            <button onclick="startLevel3()">Begin Harmonization</button>
+        </div>
 
-    <div id="level2Result" class="screen hidden">
-        <h2>LEVEL 2: FREQUENCY CALIBRATION COMPLETE</h2>
-        <button onclick="startLevel3()">Continue</button>
-    </div>
+        <!-- Failure Screen -->
+        <div id="lvl3FailureScreen" class="lvl3-screen-overlay" style="display: none;">
+            <div class="failure-title">HARMONIZATION FAILED</div>
+            <p style="color: #888; margin-bottom: 30px;">CRITICAL OVERLOAD: THE CORE EXCEEDED MAXIMUM CAPACITY</p>
+            <button onclick="resetToLevel3Init()">Restart Harmonization Protocol</button>
+        </div>
 
-    <!-- LEVEL 3: FINDING YOUR RHYTHM -->
-    <div id="level3" class="screen hidden">
-        <h2>Level 3: Finding Your Rhythm (Core Harmony)</h2>
-        <p>Your connection is securely anchored... establishing a steady Rhythm, so that your Magic isn't as explosive as the attached emotions...</p>
-        <p>Press SPACEBAR to push the Energy outwards. Don't let it shrink to nothing, but don't let it burst the boundary!</p>
-        <p>Round: <span id="roundCounter">1</span>/5 | Time Left: <span id="timerText">15</span>s</p>
-        <div id="rhythmContainer">
-            <div id="rhythmBoundary"></div>
-            <div id="rhythmCore"></div>
+        <!-- Level 3 Results Screen -->
+        <div id="lvl3ResultsScreen" class="lvl3-screen-overlay" style="display: none;">
+            <h2 style="color: #ff3366; margin-top:0; letter-spacing:2px;">LEVEL 3: RHYTHM HARMONIZED</h2>
+            <div class="summary-box" id="lvl3SummaryDisplay" style="font-size: 16px; color: #fff; text-align: center; margin-bottom: 30px;">
+                <!-- Filled dynamically by runtime evaluation scripts -->
+            </div>
+            <button onclick="showFinalDiscovery()">Calculate Offensive Magic Power</button>
+        </div>
+
+        <!-- Final Discovery Complete Screen -->
+        <div id="finalDiscoveryScreen" class="lvl3-screen-overlay" style="display: none;">
+            <h2 style="color: #ff3366; margin-top:0; letter-spacing:2px;">ENERGY SIGNATURE ACQUIRED</h2>
+            <div class="summary-box" id="finalDiscoveryDisplay" style="overflow-y: auto; max-height: 380px; font-size: 14px; line-height: 1.6; text-align: left; padding: 25px;">
+                <!-- Filled dynamically by runtime evaluation scripts -->
+            </div>
+            <button onclick="rebootSystem()">Reboot System</button>
         </div>
     </div>
+</div>
 
-    <div id="level3Result" class="screen hidden">
-        <h2>LEVEL 3: RHYTHM HARMONIZED</h2>
-        <button onclick="calculateFinalResults()">Calculate Offensive Magic Power</button>
-    </div>
+<!-- Empty Audio Element controlled purely by JS -->
+<audio id="bg-music"></audio>
 
-    <!-- FINAL RESULTS: DISCOVERY COMPLETE -->
-    <div id="finalDiscoveryScreen" class="screen hidden">
-        <h2>Energy Signature Acquired</h2>
-        <div id="finalStats"></div>
-        <h3>RP Application Example:</h3>
-        <p id="rpExample" style="font-style: italic;"></p>
-    </div>
+<script src="js/essence.js"></script>
 
-    <script src="script.js"></script>
 </body>
 </html>
