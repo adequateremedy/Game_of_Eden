@@ -15,14 +15,6 @@ window.playerStats = {
     lvl3AvgRadius: 0
 };
 
-window.mandalaParams = {
-    k1: 4,
-    k2: 6,
-    amp1: 50,
-    amp2: 30,
-    baseR: 120
-};
-
 const powerRegistry = {
     'Agni': [
         "Spark Snap", "Ember Dart", "Cinder Shot", "Flame Whip", "Scorch Ray",
@@ -818,11 +810,9 @@ let lvl2KineticTicks = 0;
 let bgNodes = [];
 
 window.mandalaParams = {
-    k1: 4,
-    k2: 6,
-    amp1: 50,
-    amp2: 30,
-    baseR: 120
+    petals: 8,
+    layers: 4,
+    maxRadius: 200
 };
 
 const lvl2Player = {
@@ -849,32 +839,72 @@ function initLvl2Background() {
     let cy = bgCanvas.height / 2;
 
     window.mandalaParams = {
-        k1: Math.floor(Math.random() * 5) + 4, 
-        k2: Math.floor(Math.random() * 5) + 4,
-        amp1: 30 + Math.random() * 60,
-        amp2: 20 + Math.random() * 40,
-        baseR: 120 + Math.random() * 30
+        petals: Math.floor(Math.random() * 7) + 6, 
+        layers: Math.floor(Math.random() * 3) + 3, 
+        maxRadius: Math.min(bgCanvas.width, bgCanvas.height) * 0.4
     };
 
     for(let i=0; i<75; i++) {
         bgNodes.push({
+            id: i,
             x: cx,
             y: cy,
             vx: 0,
             vy: 0,
             angle: Math.random() * Math.PI * 2,
-            theta: Math.random() * Math.PI * 2
+            radius: Math.random() * 200,
+            ringIndex: i % 5
         });
     }
 }
 
-function getMandalaPos(cx, cy, theta) {
+function drawSolidMandala(ctx, cx, cy, progress, isFinal) {
     let p = window.mandalaParams;
-    let r = p.baseR + p.amp1 * Math.sin(p.k1 * theta) + p.amp2 * Math.cos(p.k2 * theta);
-    return {
-        x: cx + Math.cos(theta) * r,
-        y: cy + Math.sin(theta) * r
-    };
+    if (!p) return;
+    let layers = p.layers;
+    let petals = p.petals;
+    
+    let currentLayers = isFinal ? layers : Math.max(0.1, progress * layers);
+    
+    ctx.save();
+    ctx.translate(cx, cy);
+    
+    for(let l = 1; l <= Math.ceil(currentLayers); l++) {
+        let layerRadius = (p.maxRadius / layers) * l;
+        let layerProgress = isFinal ? 1.0 : Math.min(1.0, Math.max(0.0, (progress * layers) - (l - 1)));
+        
+        if (layerProgress > 0) {
+            ctx.beginPath();
+            for(let i = 0; i < petals; i++) {
+                let angle = (i * Math.PI * 2) / petals;
+                angle += (l * (Math.PI / petals)); 
+                
+                let tipX = Math.cos(angle) * layerRadius * layerProgress;
+                let tipY = Math.sin(angle) * layerRadius * layerProgress;
+                
+                let ctrlAngle1 = angle - (Math.PI / (petals * 0.5));
+                let ctrlAngle2 = angle + (Math.PI / (petals * 0.5));
+                let ctrlR = layerRadius * 0.8 * layerProgress;
+                
+                let c1x = Math.cos(ctrlAngle1) * ctrlR;
+                let c1y = Math.sin(ctrlAngle1) * ctrlR;
+                
+                let c2x = Math.cos(ctrlAngle2) * ctrlR;
+                let c2y = Math.sin(ctrlAngle2) * ctrlR;
+                
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(c1x, c1y, tipX, tipY);
+                ctx.quadraticCurveTo(c2x, c2y, 0, 0);
+            }
+            ctx.fillStyle = selectedColorHex;
+            ctx.globalAlpha = 0.15;
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    }
+    ctx.restore();
 }
 
 function drawLvl2Background() {
@@ -899,7 +929,6 @@ function drawLvl2Background() {
     ctx.fillStyle = selectedColorHex;
     
     if (lvl2Round === 1) {
-        // ROUND 1: PLASMA -> EXPLOSION
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 20;
         
@@ -946,7 +975,6 @@ function drawLvl2Background() {
         }
         
     } else if (lvl2Round === 2) {
-        // ROUND 2: GAS (Raindrops) -> LIQUID ORBIT
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 15;
         
@@ -954,18 +982,19 @@ function drawLvl2Background() {
             let n = bgNodes[i];
             
             if (isTransition) {
-                let target = getMandalaPos(cx, cy, n.theta);
-                n.vx += (target.x - n.x) * 0.02;
-                n.vy += (target.y - n.y) * 0.02;
-                n.vx *= 0.9;
-                n.vy *= 0.9;
+                let targetAngle = Math.atan2(n.y - cy, n.x - cx);
+                let tangentX = Math.cos(targetAngle + Math.PI/2) * 8;
+                let tangentY = Math.sin(targetAngle + Math.PI/2) * 8;
+                n.vx += (tangentX - n.vx) * 0.05;
+                n.vy += (tangentY - n.vy) * 0.05;
+
+                let currentDist = Math.sqrt((n.x - cx)**2 + (n.y - cy)**2);
+                let pull = (n.radius - currentDist) * 0.05;
+                n.vx += Math.cos(targetAngle) * pull;
+                n.vy += Math.sin(targetAngle) * pull;
+
                 n.x += n.vx;
                 n.y += n.vy;
-                
-                ctx.globalAlpha = 0.4 + (transitionProgress * 0.2);
-                ctx.beginPath();
-                ctx.arc(n.x, n.y, 3, 0, Math.PI * 2);
-                ctx.fill();
             } else {
                 n.vx *= 0.98;
                 n.vy += 0.5; 
@@ -979,9 +1008,17 @@ function drawLvl2Background() {
                     n.vy = 2; 
                     n.vx = 0;
                 }
-                
-                ctx.globalAlpha = 0.4;
-                ctx.beginPath();
+            }
+
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            
+            if (isTransition) {
+                let size = 2 + Math.sin(elapsed * 3 + i) * 2;
+                if(size < 1) size = 1;
+                ctx.arc(n.x, n.y, size, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
                 ctx.moveTo(n.x, n.y - n.vy * 2);
                 ctx.lineTo(n.x, n.y);
                 ctx.lineWidth = 2 + Math.sin(elapsed * 3 + i) * 2;
@@ -992,7 +1029,6 @@ function drawLvl2Background() {
         }
         
     } else if (lvl2Round === 3) {
-        // ROUND 3: LIQUID ORBIT -> SOLID MANDALA
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 10;
 
@@ -1000,33 +1036,25 @@ function drawLvl2Background() {
             let n = bgNodes[i];
             
             if (isTransition) {
-                n.theta += 0.1;
-                let pos = getMandalaPos(cx, cy, n.theta);
-                let oldPos = getMandalaPos(cx, cy, n.theta - 0.5); 
-                
-                ctx.globalAlpha = transitionProgress;
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(oldPos.x, oldPos.y);
-                ctx.lineTo(pos.x, pos.y);
-                ctx.stroke();
-                
-                n.x = pos.x;
-                n.y = pos.y;
+                n.x += (cx - n.x) * (0.05 + transitionProgress * 0.15);
+                n.y += (cy - n.y) * (0.05 + transitionProgress * 0.15);
+                n.radius *= 0.9;
             } else {
-                n.theta += 0.015 + (i % 3) * 0.005;
-                let pos = getMandalaPos(cx, cy, n.theta);
+                let currentAngle = Math.atan2(n.y - cy, n.x - cx);
+                let currentDist = Math.sqrt((n.x - cx)**2 + (n.y - cy)**2);
+                currentDist += (n.radius - currentDist) * 0.05;
                 
-                let wobbleX = Math.sin(elapsed * 2 + i) * 10;
-                let wobbleY = Math.cos(elapsed * 2 + i) * 10;
-                n.x = pos.x + wobbleX;
-                n.y = pos.y + wobbleY;
+                currentAngle += 0.01 + (n.ringIndex * 0.002);
+                let wobble = Math.sin(elapsed * 2 + n.id) * 15;
                 
-                ctx.globalAlpha = 0.6;
-                ctx.beginPath();
-                ctx.arc(n.x, n.y, 3, 0, Math.PI * 2);
-                ctx.fill();
+                n.x = cx + Math.cos(currentAngle) * (currentDist + wobble);
+                n.y = cy + Math.sin(currentAngle) * (currentDist + wobble);
             }
+            
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, 3, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         if (!isTransition) {
@@ -1045,38 +1073,40 @@ function drawLvl2Background() {
                     }
                 }
             }
+        } else {
+            ctx.globalAlpha = transitionProgress;
+            ctx.beginPath();
+            ctx.arc(cx, cy, transitionProgress * 20, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
         }
 
     } else if (lvl2Round === 4) {
-        // ROUND 4: SOLID (Forging the Mandala)
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 15;
         
-        ctx.globalAlpha = 0.3;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        for(let t = 0; t <= Math.PI * 2; t += 0.02) {
-            let pos = getMandalaPos(cx, cy, t);
-            if(t === 0) ctx.moveTo(pos.x, pos.y);
-            else ctx.lineTo(pos.x, pos.y);
-        }
-        ctx.closePath();
-        ctx.stroke();
+        let progress = elapsed / lvl2Duration;
+        drawSolidMandala(ctx, cx, cy, progress, false);
 
         ctx.globalAlpha = 1.0;
-        let numTracers = 5;
+        let numTracers = window.mandalaParams.petals;
         for(let i=0; i<numTracers; i++) {
-            let t = (elapsed * (1.5 + i*0.2) + i * Math.PI) % (Math.PI * 2);
-            let pos = getMandalaPos(cx, cy, t);
+            let angle = (i * Math.PI * 2) / numTracers;
+            angle += elapsed; 
+            let r = window.mandalaParams.maxRadius * Math.min(1.0, progress * 1.5);
+            let pos = {
+                x: cx + Math.cos(angle) * r,
+                y: cy + Math.sin(angle) * r
+            };
             
             ctx.shadowBlur = 20;
             ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
+            ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
             ctx.fillStyle = '#fff';
             ctx.fill();
             
             ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 12, 0, Math.PI * 2);
+            ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
             ctx.fillStyle = selectedColorHex;
             ctx.fill();
         }
@@ -1187,7 +1217,6 @@ function updateLvl2PlayerLogic() {
     
     lvl2Player.x = nextX;
     
-    // Process Animation Timers & Trails
     if (lvl2Player.overclockTimer > 0) {
         lvl2Player.overclockTimer--;
         if (isMoving) {
@@ -1209,7 +1238,6 @@ function updateLvl2PlayerLogic() {
     lvl2Frames++;
     lvl2TotalFrames++; 
     
-    // Smooth continuous speed scaling across the entire level
     let speedMultiplier = 1.0 + (lvl2TotalFrames / 7200); 
     
     let spawnFreq = Math.floor(120 / speedMultiplier);
@@ -1273,7 +1301,6 @@ function drawSynapse(ctx, x, y, radius, isPositive) {
     ctx.save();
     ctx.translate(x, y);
     
-    // Background Circle
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
     if (isPositive) {
@@ -1283,7 +1310,6 @@ function drawSynapse(ctx, x, y, radius, isPositive) {
     }
     ctx.fill();
     
-    // Symbol (+ or -)
     ctx.beginPath();
     let symbolSize = radius * 0.6;
     ctx.lineWidth = Math.max(1, radius * 0.2);
@@ -1309,12 +1335,10 @@ function drawLvl2Screen() {
     
     lvl2Ctx.clearRect(0, 0, lvl2Canvas.width, lvl2Canvas.height);
     
-    // Draw Synapses
     for (let item of lvl2Items) {
         drawSynapse(lvl2Ctx, item.x, item.y, item.radius, item.type === 'spark');
     }
     
-    // Draw Hyper-Dash Trail Afterimages
     for (let i = 0; i < lvl2Player.trail.length; i++) {
         let pos = lvl2Player.trail[i];
         let alpha = (i + 1) / lvl2Player.trail.length * 0.4; 
@@ -1324,7 +1348,6 @@ function drawLvl2Screen() {
     }
     lvl2Ctx.globalAlpha = 1.0;
 
-    // Draw Main Player Object
     let px = lvl2Player.x - lvl2Player.width/2;
     let py = lvl2Player.y - lvl2Player.height/2;
 
@@ -1392,6 +1415,19 @@ function handleLvl2FinalComplete() {
     window.playerStats.avgKinetic = scores.avgKinetic;
     window.playerStats.finalVelocity = lvl2Player.speed;
     
+    const bgCanvas = document.getElementById("lvl2BgCanvas");
+    if (bgCanvas) {
+        const ctx = bgCanvas.getContext("2d");
+        let cx = bgCanvas.width / 2;
+        let cy = bgCanvas.height / 2;
+        ctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        ctx.strokeStyle = selectedColorHex;
+        ctx.shadowColor = selectedColorHex;
+        ctx.shadowBlur = 15;
+        drawSolidMandala(ctx, cx, cy, 1.0, true);
+        ctx.shadowBlur = 0;
+    }
+
     document.getElementById("mathDisplay").innerHTML = `
         -> Average Kinetic Output: <strong>${scores.avgKinetic.toFixed(1)}%</strong><br>
         -> Base Velocity: <strong>${lvl2Player.speed.toFixed(1)}</strong>
