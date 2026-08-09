@@ -427,9 +427,10 @@ body, html {
     left: 0;
     z-index: 100;
     overflow: hidden;
+    --core-color: #00ffcc; /* Dynamically injected by JS */
 }
 
-/* Option 2: The "Living Core" Pulsing Radial Aura Background */
+/* Outer Aura - slow breathe */
 #level2-container::before {
     content: "";
     position: absolute;
@@ -438,21 +439,38 @@ body, html {
     width: 150vw;
     height: 150vh;
     transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(50, 80, 120, 0.25) 0%, rgba(11, 11, 13, 0) 65%);
+    background: radial-gradient(circle, var(--core-color) 0%, transparent 60%);
     z-index: 0;
-    animation: livingCorePulse 5s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+    animation: outerAuraPulse 4s infinite alternate ease-in-out;
     pointer-events: none;
+    opacity: 0.15;
 }
 
-@keyframes livingCorePulse {
-    0% {
-        transform: translate(-50%, -50%) scale(0.8);
-        opacity: 0.4;
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(1.3);
-        opacity: 1;
-    }
+/* Inner Core - faster heartbeat */
+#level2-container::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 80vw;
+    height: 80vh;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, var(--core-color) 0%, transparent 50%);
+    z-index: 0;
+    animation: innerCorePulse 3s infinite alternate ease-in-out;
+    pointer-events: none;
+    opacity: 0.3;
+    mix-blend-mode: screen;
+}
+
+@keyframes outerAuraPulse {
+    0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.1; }
+    100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.25; }
+}
+
+@keyframes innerCorePulse {
+    0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0.2; }
+    100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.45; }
 }
 
 /* Keep internal UI and Canvas above the animated background */
@@ -527,10 +545,13 @@ body, html {
     height: 400px;
 }
 
+/* Semi-Transparent Frosted Glass Canvas */
 #gameCanvas {
     border: 4px solid #2d2d35;
-    background-color: #111115;
+    background-color: rgba(17, 17, 21, 0.45);
     box-shadow: 0px 0px 25px rgba(0, 255, 204, 0.05);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .screen-overlay {
