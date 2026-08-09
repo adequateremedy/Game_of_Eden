@@ -1137,6 +1137,9 @@ function startLevel2() {
     lvl2KineticTicks = 0;
     lvl2TotalFrames = 0; 
     
+    const gc = document.getElementById("gameCanvas");
+    if(gc) gc.style.opacity = "1";
+    
     lvl2Player.speed = lvl2Player.baseSpeed;
     lvl2Player.x = 400;
     lvl2Player.overclockTimer = 0;
@@ -1166,6 +1169,9 @@ function restartLvl2Round1() {
     lvl2TotalFrames = 0; 
     
     initLvl2Background();
+    
+    const gc = document.getElementById("gameCanvas");
+    if(gc) gc.style.opacity = "1";
     
     lvl2Player.speed = lvl2Player.baseSpeed;
     lvl2Player.x = 400;
