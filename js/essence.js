@@ -834,7 +834,7 @@ function initLvl2Background() {
     let cx = bgCanvas.width / 2;
     let cy = bgCanvas.height / 2;
 
-    for(let i=0; i<150; i++) {
+    for(let i=0; i<75; i++) {
         bgNodes.push({
             x: cx,
             y: cy,
@@ -895,7 +895,7 @@ function drawLvl2Background() {
                 ctx.fill();
             } else {
                 // ERRATIC ARCS
-                if (i % 10 === 0) {
+                if (i % 5 === 0) {
                     ctx.beginPath();
                     ctx.moveTo(cx, cy);
                     let curX = cx;
@@ -918,7 +918,7 @@ function drawLvl2Background() {
         }
         
     } else if (lvl2Round === 2) {
-        // ROUND 2: GAS -> CONDENSATION
+        // ROUND 2: GAS -> CONDENSATION (Raindrops)
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 15;
         
@@ -926,14 +926,10 @@ function drawLvl2Background() {
             let n = bgNodes[i];
             
             if (isTransition) {
-                // CONDENSE INTO VORTEX
-                let targetRadius = 50 + (i % 5) * 40;
-                n.angle += 0.02;
-                let targetX = cx + Math.cos(n.angle) * targetRadius;
-                let targetY = cy + Math.sin(n.angle) * targetRadius;
-                
-                n.vx = (targetX - n.x) * 0.05;
-                n.vy = (targetY - n.y) * 0.05;
+                // HEAVY RAINDROPS
+                n.vx *= 0.9; 
+                n.vy += 0.5; 
+                if(n.vy > 12) n.vy = 12;
             } else {
                 // DRIFT
                 n.vx *= 0.98; 
@@ -952,10 +948,20 @@ function drawLvl2Background() {
 
             ctx.globalAlpha = 0.4;
             ctx.beginPath();
-            let size = 2 + Math.sin(elapsed * 3 + i) * 2;
-            if(size < 1) size = 1;
-            ctx.arc(n.x, n.y, size, 0, Math.PI * 2);
-            ctx.fill();
+            
+            if (isTransition) {
+                ctx.moveTo(n.x, n.y - n.vy * 2);
+                ctx.lineTo(n.x, n.y);
+                ctx.lineWidth = 2 + Math.sin(elapsed * 3 + i) * 2;
+                if(ctx.lineWidth < 1) ctx.lineWidth = 1;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            } else {
+                let size = 2 + Math.sin(elapsed * 3 + i) * 2;
+                if(size < 1) size = 1;
+                ctx.arc(n.x, n.y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
         
     } else if (lvl2Round === 3) {
@@ -968,7 +974,7 @@ function drawLvl2Background() {
             for(let i=0; i<bgNodes.length; i++) {
                 let n = bgNodes[i];
                 let group = i % 5;
-                let t = (i / 30) * Math.PI * 2;
+                let t = (i / (bgNodes.length/5)) * Math.PI * 2;
                 let offsetDist = group === 0 ? 0 : 160;
                 let offsetAngle = group * (Math.PI * 2 / 4);
                 let centerX = cx + Math.cos(offsetAngle) * offsetDist;
@@ -1000,7 +1006,7 @@ function drawLvl2Background() {
             ctx.fill();
         }
         
-        // Liquid web tension
+        // Liquid web tension - safe performance with 75 elements
         ctx.lineWidth = 2;
         for (let i = 0; i < bgNodes.length; i++) {
             for (let j = i + 1; j < bgNodes.length; j++) {
@@ -1036,7 +1042,7 @@ function drawLvl2Background() {
                 let dx = bgNodes[i].x - bgNodes[j].x;
                 let dy = bgNodes[i].y - bgNodes[j].y;
                 let dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist > 75 && dist < 85) {
+                if (dist > 50 && dist < 120) {
                     ctx.beginPath();
                     ctx.moveTo(bgNodes[i].x, bgNodes[i].y);
                     ctx.lineTo(bgNodes[j].x, bgNodes[j].y);
