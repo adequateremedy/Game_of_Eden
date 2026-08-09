@@ -784,7 +784,7 @@ function transitionToLevel2() {
 
 
 // ==========================================
-// LEVEL 2: RESONATING MAGIC (Positive & Negative Synapses)
+// LEVEL 2: RESONATING MAGIC
 // ==========================================
 
 const lvl2Canvas = document.getElementById("gameCanvas");
@@ -815,7 +815,8 @@ const lvl2Player = {
     height: 12,
     speed: 7.0,
     baseSpeed: 7.0,
-    color: "#00ffcc"
+    color: "#00ffcc",
+    electricTimer: 0
 };
 
 function startLevel2() {
@@ -841,6 +842,7 @@ function startLevel2() {
 
 function startLvl2Round() {
     lvl2Player.x = 400;
+    lvl2Player.electricTimer = 0;
     lvl2CurrentKinetic = 0;
     lvl2TotalDistanceMoved = 0;
     
@@ -859,6 +861,7 @@ function restartLvl2Round1() {
     lvl2AccumulatedKinetic = 0;
     lvl2KineticTicks = 0;
     lvl2Player.speed = lvl2Player.baseSpeed;
+    lvl2Player.electricTimer = 0;
     
     for (let key in keys) { keys[key] = false; }
     
@@ -898,20 +901,32 @@ function updateLvl2PlayerLogic() {
     
     lvl2Player.x = nextX;
     
+    // Decrement the electric animation timer
+    if (lvl2Player.electricTimer > 0) {
+        lvl2Player.electricTimer--;
+    }
+    
     lvl2Frames++;
-    if (lvl2Frames % 120 === 0) {
+    
+    // Scale Difficulty based on round (Size, Speed, Spawn Rate)
+    let spawnFreq = Math.floor(120 / (1 + (lvl2Round - 1) * 0.25));
+    let itemSpeed = 3.5 * (1 + (lvl2Round - 1) * 0.25);
+    let itemRadius = 12 / Math.pow(2, lvl2Round - 1); // 12 -> 6 -> 3
+    
+    if (lvl2Frames % spawnFreq === 0) {
         let isSpark = Math.random() > 0.5;
         lvl2Items.push({
             x: Math.random() * (lvl2Canvas.width - 40) + 20,
             y: -20,
             type: isSpark ? 'spark' : 'anchor',
-            radius: 12
+            radius: itemRadius,
+            speed: itemSpeed
         });
     }
     
     for (let i = lvl2Items.length - 1; i >= 0; i--) {
         let item = lvl2Items[i];
-        item.y += 3.5; 
+        item.y += item.speed; 
         
         let dx = lvl2Player.x - item.x;
         let dy = lvl2Player.y - item.y;
@@ -920,6 +935,7 @@ function updateLvl2PlayerLogic() {
         if (distance < (lvl2Player.width/2 + item.radius)) {
             if (item.type === 'spark') {
                 lvl2Player.speed += 1.5; 
+                lvl2Player.electricTimer = 120; // 2 seconds at 60fps
             } else {
                 lvl2Player.speed -= 1.5; 
                 if (lvl2Player.speed < 2.0) lvl2Player.speed = 2.0; 
@@ -937,25 +953,36 @@ function updateLvl2PlayerLogic() {
 
 function drawSynapse(ctx, x, y, radius, isPositive) {
     ctx.save();
-    ctx.strokeStyle = isPositive ? '#ff66b2' : '#8b4513';
-    ctx.fillStyle = isPositive ? '#ff66b2' : '#8b4513';
-    ctx.lineWidth = 2;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = ctx.strokeStyle;
-
+    ctx.translate(x, y);
+    
+    // Background Circle
     ctx.beginPath();
-    ctx.arc(x, y, radius * 0.3, 0, Math.PI * 2);
-    ctx.fill();
-
-    // branching lines
-    for (let i = 0; i < 4; i++) {
-        let angle = (i * Math.PI / 2) + 0.5;
-        let length = radius * 1.5;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
-        ctx.stroke();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    if (isPositive) {
+        ctx.fillStyle = 'rgba(50, 50, 50, 0.6)';
+    } else {
+        ctx.fillStyle = '#ffffff';
     }
+    ctx.fill();
+    
+    // Symbol (+ or -)
+    ctx.beginPath();
+    let symbolSize = radius * 0.6;
+    ctx.lineWidth = Math.max(1, radius * 0.2);
+    ctx.lineCap = 'round';
+    if (isPositive) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.moveTo(-symbolSize, 0);
+        ctx.lineTo(symbolSize, 0);
+        ctx.moveTo(0, -symbolSize);
+        ctx.lineTo(0, symbolSize);
+    } else {
+        ctx.strokeStyle = 'rgba(50, 50, 50, 0.6)';
+        ctx.moveTo(-symbolSize, 0);
+        ctx.lineTo(symbolSize, 0);
+    }
+    ctx.stroke();
+    
     ctx.restore();
 }
 
@@ -964,16 +991,75 @@ function drawLvl2Screen() {
     
     lvl2Ctx.clearRect(0, 0, lvl2Canvas.width, lvl2Canvas.height);
     
-    // Draw Synapses
     for (let item of lvl2Items) {
         drawSynapse(lvl2Ctx, item.x, item.y, item.radius, item.type === 'spark');
     }
     
+    let px = lvl2Player.x - lvl2Player.width/2;
+    let py = lvl2Player.y - lvl2Player.height/2;
+    
     lvl2Ctx.fillStyle = lvl2Player.color;
     lvl2Ctx.shadowBlur = 10;
     lvl2Ctx.shadowColor = lvl2Player.color;
-    lvl2Ctx.fillRect(lvl2Player.x - lvl2Player.width/2, lvl2Player.y - lvl2Player.height/2, lvl2Player.width, lvl2Player.height);
+    lvl2Ctx.fillRect(px, py, lvl2Player.width, lvl2Player.height);
     lvl2Ctx.shadowBlur = 0;
+    
+    // Draw the electric animation if active
+    if (lvl2Player.electricTimer > 0) {
+        lvl2Ctx.save();
+        let progress = (120 - lvl2Player.electricTimer) / 120; // 0.0 to 1.0
+        let w = lvl2Player.width;
+        let h = lvl2Player.height;
+        let perimeter = (w + h) * 2;
+        
+        lvl2Ctx.strokeStyle = "#ffffff";
+        lvl2Ctx.lineWidth = 3;
+        lvl2Ctx.shadowBlur = 8;
+        lvl2Ctx.shadowColor = "#00ffcc";
+        
+        let trailLength = 20; 
+        let currentLength = perimeter * progress;
+        
+        lvl2Ctx.setLineDash([trailLength, perimeter]);
+        lvl2Ctx.lineDashOffset = - (currentLength - trailLength);
+        
+        lvl2Ctx.beginPath();
+        lvl2Ctx.rect(px, py, w, h);
+        lvl2Ctx.stroke();
+        
+        // Calculate point manually for the bright spark head
+        let hx = px, hy = py;
+        if (currentLength <= w) {
+            hx = px + currentLength;
+            hy = py;
+        } else if (currentLength <= w + h) {
+            hx = px + w;
+            hy = py + (currentLength - w);
+        } else if (currentLength <= w * 2 + h) {
+            hx = px + w - (currentLength - (w + h));
+            hy = py + h;
+        } else {
+            hx = px;
+            hy = py + h - (currentLength - (w * 2 + h));
+        }
+        
+        lvl2Ctx.beginPath();
+        lvl2Ctx.arc(hx, hy, 4, 0, Math.PI * 2);
+        lvl2Ctx.fillStyle = "#ffffff";
+        lvl2Ctx.fill();
+        
+        // Minor erratic electricity effect around the head
+        lvl2Ctx.beginPath();
+        lvl2Ctx.moveTo(hx, hy);
+        lvl2Ctx.lineTo(hx + (Math.random()-0.5)*15, hy + (Math.random()-0.5)*15);
+        lvl2Ctx.moveTo(hx, hy);
+        lvl2Ctx.lineTo(hx + (Math.random()-0.5)*15, hy + (Math.random()-0.5)*15);
+        lvl2Ctx.lineWidth = 1.5;
+        lvl2Ctx.strokeStyle = "#ffffff";
+        lvl2Ctx.stroke();
+        
+        lvl2Ctx.restore();
+    }
 }
 
 function updateLvl2HUD() {
