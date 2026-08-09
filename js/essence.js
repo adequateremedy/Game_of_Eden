@@ -845,13 +845,16 @@ function initLvl2Background() {
     };
 
     for(let i=0; i<75; i++) {
+        let angle = Math.random() * Math.PI * 2;
+        let speed = 4 + Math.random() * 6;
         bgNodes.push({
             id: i,
             x: cx,
             y: cy,
-            vx: 0,
-            vy: 0,
-            angle: Math.random() * Math.PI * 2,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            angle: angle,
+            theta: Math.random() * Math.PI * 2,
             radius: Math.random() * 200,
             ringIndex: i % 5
         });
@@ -897,10 +900,10 @@ function drawSolidMandala(ctx, cx, cy, progress, isFinal) {
                 ctx.quadraticCurveTo(c2x, c2y, 0, 0);
             }
             ctx.fillStyle = selectedColorHex;
-            ctx.globalAlpha = 0.15;
+            ctx.globalAlpha = 0.25;
             ctx.fill();
             ctx.globalAlpha = 1.0;
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 2.5;
             ctx.stroke();
         }
     }
@@ -929,27 +932,32 @@ function drawLvl2Background() {
     ctx.fillStyle = selectedColorHex;
     
     if (lvl2Round === 1) {
+        // ROUND 1: PLASMA -> EXPLOSION WITH WALL BOUNCES
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 20;
         
-        ctx.globalAlpha = Math.random() * 0.4 + 0.1;
-        ctx.beginPath();
-        ctx.arc(cx, cy, 100 + Math.random() * 20, 0, Math.PI * 2);
-        ctx.fill();
+        if (!isTransition) {
+            ctx.globalAlpha = Math.random() * 0.4 + 0.1;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 100 + Math.random() * 20, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
         for (let i = 0; i < bgNodes.length; i++) {
             let n = bgNodes[i];
             
             if (isTransition) {
-                let blastSpeed = 8 + Math.random() * 10;
-                n.vx = Math.cos(n.angle) * blastSpeed;
-                n.vy = Math.sin(n.angle) * blastSpeed;
                 n.x += n.vx;
                 n.y += n.vy;
                 
+                if (n.x < 10) { n.x = 10; n.vx *= -1; }
+                if (n.x > bgCanvas.width - 10) { n.x = bgCanvas.width - 10; n.vx *= -1; }
+                if (n.y < 10) { n.y = 10; n.vy *= -1; }
+                if (n.y > bgCanvas.height - 10) { n.y = bgCanvas.height - 10; n.vy *= -1; }
+                
                 ctx.globalAlpha = 0.8;
                 ctx.beginPath();
-                ctx.arc(n.x, n.y, 3, 0, Math.PI * 2);
+                ctx.arc(n.x, n.y, 4, 0, Math.PI * 2);
                 ctx.fill();
             } else {
                 if (i % 5 === 0) {
@@ -975,6 +983,7 @@ function drawLvl2Background() {
         }
         
     } else if (lvl2Round === 2) {
+        // ROUND 2: GAS (Bouncing Particles) -> PULLED TO CENTER
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 15;
         
@@ -982,53 +991,32 @@ function drawLvl2Background() {
             let n = bgNodes[i];
             
             if (isTransition) {
-                let targetAngle = Math.atan2(n.y - cy, n.x - cx);
-                let tangentX = Math.cos(targetAngle + Math.PI/2) * 8;
-                let tangentY = Math.sin(targetAngle + Math.PI/2) * 8;
-                n.vx += (tangentX - n.vx) * 0.05;
-                n.vy += (tangentY - n.vy) * 0.05;
-
-                let currentDist = Math.sqrt((n.x - cx)**2 + (n.y - cy)**2);
-                let pull = (n.radius - currentDist) * 0.05;
-                n.vx += Math.cos(targetAngle) * pull;
-                n.vy += Math.sin(targetAngle) * pull;
-
+                let pullX = (cx - n.x) * 0.1;
+                let pullY = (cy - n.y) * 0.1;
+                n.vx += pullX;
+                n.vy += pullY;
+                n.vx *= 0.85;
+                n.vy *= 0.85;
                 n.x += n.vx;
                 n.y += n.vy;
             } else {
-                n.vx *= 0.98;
-                n.vy += 0.5; 
-                if(n.vy > 12) n.vy = 12;
                 n.x += n.vx;
                 n.y += n.vy;
                 
-                if (n.y > bgCanvas.height + 20) { 
-                    n.y = -20; 
-                    n.x = Math.random() * bgCanvas.width; 
-                    n.vy = 2; 
-                    n.vx = 0;
-                }
+                if (n.x < 10) { n.x = 10; n.vx *= -1; }
+                if (n.x > bgCanvas.width - 10) { n.x = bgCanvas.width - 10; n.vx *= -1; }
+                if (n.y < 10) { n.y = 10; n.vy *= -1; }
+                if (n.y > bgCanvas.height - 10) { n.y = bgCanvas.height - 10; n.vy *= -1; }
             }
 
-            ctx.globalAlpha = 0.4;
+            ctx.globalAlpha = 0.6;
             ctx.beginPath();
-            
-            if (isTransition) {
-                let size = 2 + Math.sin(elapsed * 3 + i) * 2;
-                if(size < 1) size = 1;
-                ctx.arc(n.x, n.y, size, 0, Math.PI * 2);
-                ctx.fill();
-            } else {
-                ctx.moveTo(n.x, n.y - n.vy * 2);
-                ctx.lineTo(n.x, n.y);
-                ctx.lineWidth = 2 + Math.sin(elapsed * 3 + i) * 2;
-                if(ctx.lineWidth < 1) ctx.lineWidth = 1;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-            }
+            ctx.arc(n.x, n.y, 4, 0, Math.PI * 2);
+            ctx.fill();
         }
         
     } else if (lvl2Round === 3) {
+        // ROUND 3: LIQUID ORBIT -> SOLID MANDALA
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 10;
 
