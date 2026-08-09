@@ -791,7 +791,7 @@ const lvl2Canvas = document.getElementById("gameCanvas");
 const lvl2Ctx = lvl2Canvas ? lvl2Canvas.getContext("2d") : null;
 
 const lvl2Duration = 60; 
-const lvl2MaxRounds = 3;
+const lvl2MaxRounds = 4;
 
 let lvl2Round = 1;
 let lvl2StartTime;
@@ -806,7 +806,6 @@ let lvl2TotalFrames = 0;
 let lvl2CurrentKinetic = 0;
 let lvl2AccumulatedKinetic = 0;
 let lvl2KineticTicks = 0;
-let lvl2TotalDistanceMoved = 0;
 
 const lvl2Player = {
     x: 400,
@@ -839,21 +838,23 @@ function startLevel2() {
     lvl2AccumulatedKinetic = 0;
     lvl2KineticTicks = 0;
     lvl2TotalFrames = 0; 
+    
     lvl2Player.speed = lvl2Player.baseSpeed;
+    lvl2Player.x = 400;
+    lvl2Player.overclockTimer = 0;
+    lvl2Player.glitchTimer = 0;
+    lvl2Player.trail = [];
+    lvl2Items = [];
     
     startLvl2Round();
 }
 
 function startLvl2Round() {
-    lvl2Player.x = 400;
-    lvl2Player.overclockTimer = 0;
-    lvl2Player.glitchTimer = 0;
-    lvl2Player.trail = [];
     lvl2CurrentKinetic = 0;
-    lvl2TotalDistanceMoved = 0;
-    
-    lvl2Items = [];
     lvl2Frames = 0;
+    
+    const container = document.getElementById('level2-container');
+    container.className = 'state-round-' + lvl2Round;
     
     lvl2StartTime = performance.now();
     lvl2GameActive = true;
@@ -864,17 +865,20 @@ function startLvl2Round() {
 function restartLvl2Round1() {
     document.getElementById("lvl2WarningScreen").style.display = "none";
     
+    lvl2Round = 1;
     lvl2AccumulatedKinetic = 0;
     lvl2KineticTicks = 0;
     lvl2TotalFrames = 0; 
+    
     lvl2Player.speed = lvl2Player.baseSpeed;
+    lvl2Player.x = 400;
     lvl2Player.overclockTimer = 0;
     lvl2Player.glitchTimer = 0;
     lvl2Player.trail = [];
+    lvl2Items = [];
     
     for (let key in keys) { keys[key] = false; }
     
-    lvl2Round = 1;
     startLvl2Round();
 }
 
@@ -883,10 +887,6 @@ function triggerLvl2Fail() {
     cancelAnimationFrame(lvl2AnimationFrameId);
     
     const warningScreen = document.getElementById("lvl2WarningScreen");
-    const warningText = warningScreen.querySelector("p");
-    if (warningText) {
-        warningText.innerText = "Your momentum has completely stalled (Velocity reached 0). The connection has been lost.";
-    }
     warningScreen.style.display = "flex";
 }
 
@@ -918,9 +918,6 @@ function updateLvl2PlayerLogic() {
     if (nextX < 20) nextX = 20;
     if (nextX > lvl2Canvas.width - 20) nextX = lvl2Canvas.width - 20;
     
-    let dist = Math.abs(lvl2Player.x - nextX);
-    lvl2TotalDistanceMoved += dist;
-    
     lvl2Player.x = nextX;
     
     // Process Animation Timers & Trails
@@ -946,24 +943,22 @@ function updateLvl2PlayerLogic() {
     lvl2TotalFrames++; 
     
     // Smooth continuous speed scaling across the entire level
-    // Multiplier increases by 1.0 roughly every 60 seconds (3600 frames at 60fps)
-    let speedMultiplier = 1.0 + (lvl2TotalFrames / 3600); 
+    // Multiplier increases by 1.0 roughly every 120 seconds (7200 frames at 60fps)
+    let speedMultiplier = 1.0 + (lvl2TotalFrames / 7200); 
     
     let spawnFreq = Math.floor(120 / speedMultiplier);
-    if (spawnFreq < 15) spawnFreq = 15; // Hard cap so it remains physically possible
+    if (spawnFreq < 15) spawnFreq = 15; 
     
     let itemSpeed = 3.5 * speedMultiplier;
-    let itemRadius = 12; // Size remains completely constant
+    let itemRadius = 12; 
     
     if (lvl2Frames % spawnFreq === 0) {
         let isSpark = Math.random() > 0.5;
         let spawnX;
         
         if (isSpark) {
-            // Positive synapses spawn randomly
             spawnX = Math.random() * (lvl2Canvas.width - 40) + 20;
         } else {
-            // Negative synapses lock directly onto the player's current X coordinate
             spawnX = lvl2Player.x;
         }
         
@@ -987,15 +982,14 @@ function updateLvl2PlayerLogic() {
         if (distance < (lvl2Player.width/2 + item.radius)) {
             if (item.type === 'spark') {
                 lvl2Player.speed += 1.5; 
-                lvl2Player.overclockTimer = 120; // 2 seconds Hyper-Dash
+                lvl2Player.overclockTimer = 120; 
             } else {
                 lvl2Player.speed -= 1.5; 
-                lvl2Player.glitchTimer = 60; // 1 second Glitch Stutter
+                lvl2Player.glitchTimer = 60; 
             }
             
             lvl2Items.splice(i, 1);
             
-            // Instantly fail if player velocity drops to 0 or below
             if (lvl2Player.speed <= 0) {
                 triggerLvl2Fail();
                 return;
@@ -1017,9 +1011,9 @@ function drawSynapse(ctx, x, y, radius, isPositive) {
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
     if (isPositive) {
-        ctx.fillStyle = '#000000'; // Solid Black
+        ctx.fillStyle = '#000000'; 
     } else {
-        ctx.fillStyle = '#ffffff'; // Solid White
+        ctx.fillStyle = '#ffffff'; 
     }
     ctx.fill();
     
@@ -1029,13 +1023,13 @@ function drawSynapse(ctx, x, y, radius, isPositive) {
     ctx.lineWidth = Math.max(1, radius * 0.2);
     ctx.lineCap = 'round';
     if (isPositive) {
-        ctx.strokeStyle = '#ffffff'; // Solid White Plus
+        ctx.strokeStyle = '#ffffff'; 
         ctx.moveTo(-symbolSize, 0);
         ctx.lineTo(symbolSize, 0);
         ctx.moveTo(0, -symbolSize);
         ctx.lineTo(0, symbolSize);
     } else {
-        ctx.strokeStyle = '#000000'; // Solid Black Minus
+        ctx.strokeStyle = '#000000'; 
         ctx.moveTo(-symbolSize, 0);
         ctx.lineTo(symbolSize, 0);
     }
@@ -1057,7 +1051,7 @@ function drawLvl2Screen() {
     // Draw Hyper-Dash Trail Afterimages
     for (let i = 0; i < lvl2Player.trail.length; i++) {
         let pos = lvl2Player.trail[i];
-        let alpha = (i + 1) / lvl2Player.trail.length * 0.4; // Fades out the further back it is
+        let alpha = (i + 1) / lvl2Player.trail.length * 0.4; 
         lvl2Ctx.fillStyle = lvl2Player.color;
         lvl2Ctx.globalAlpha = alpha;
         lvl2Ctx.fillRect(pos.x - lvl2Player.width/2, pos.y - lvl2Player.height/2, lvl2Player.width, lvl2Player.height);
@@ -1069,11 +1063,9 @@ function drawLvl2Screen() {
     let py = lvl2Player.y - lvl2Player.height/2;
 
     if (lvl2Player.glitchTimer > 0) {
-        // Glitch Stutter logic: Randomly offset the X and Y coordinates
         px += (Math.random() - 0.5) * 8; 
         py += (Math.random() - 0.5) * 4; 
         
-        // Randomly flash between dull gray and white to simulate static
         if (Math.random() > 0.5) {
             lvl2Ctx.fillStyle = '#888888';
         } else {
