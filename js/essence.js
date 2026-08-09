@@ -108,7 +108,7 @@ function playAudio(src) {
 }
 
 // ==========================================
-// LEVEL 1: ESSENCE DEVELOPMENT (TRUE SQUARE LABYRINTH W/ PERIMETER ENTRANCE)
+// LEVEL 1: ESSENCE DEVELOPMENT (TRUE MULTI-PATH LABYRINTH W/ ROUND TIMERS: 1m, 2m, 3m)
 // ==========================================
 const loreData = [
     `Your Agni Essence embodies an intense, consuming passion that ignites creativity and drives ambition forward with unstoppable momentum. This fierce energy easily spills over into a volatile, explosive anger when restricted, burning through boundaries with sharp impatience. Yet, beneath the aggression lies a warm, radiant joy that offers comfort, protection, and deep inspiration to those nearby. It also carries a sharp, critical judgment, fiercely cutting away falsehoods to seek absolute purity and truth. Finally, it harbors a restless anxiety, a constant, flickering fear of depletion that forces it to always seek new fuel to sustain its brilliant light.`,
@@ -132,7 +132,8 @@ let playerRadius = 3.5;
 let playerActive = false;
 let keys = {};
 
-let gameTimer = 180;
+const roundTimes = [60, 120, 180]; // Round 1 = 1 min, Round 2 = 2 mins, Round 3 = 3 mins
+let gameTimer = 60;
 let timerInterval = null;
 let totalOrbsCollected = 0;
 let glowTimeRemaining = 40;
@@ -273,9 +274,9 @@ function finishSelection() {
         
         lvl1Round = 1;
         totalOrbsCollected = 0;
-        gameTimer = 180;
+        gameTimer = roundTimes[0];
         
-        generateTrueLabyrinth();
+        generateBraidedLabyrinth();
         setupPerimeterRound();
         drawTrueLabyrinth(false);
 
@@ -292,7 +293,8 @@ function finishSelection() {
     }, 1000);
 }
 
-function generateTrueLabyrinth() {
+function generateBraidedLabyrinth() {
+    // 1st: Generate base perfect maze via DFS
     baseMazeGrid = Array(rows).fill(0).map(() => Array(cols).fill(1));
 
     let seed = (chosenMazeIndex + 1) * 777;
@@ -336,6 +338,24 @@ function generateTrueLabyrinth() {
         }
     }
 
+    // 2nd: Braiding (knock down selective interior walls to guarantee multiple paths to center and maintain 10+ rich dead ends)
+    let internalWalls = [];
+    for (let r = 2; r < rows - 2; r++) {
+        for (let c = 2; c < cols - 2; c++) {
+            if (baseMazeGrid[r][c] === 1) {
+                internalWalls.push({r: r, c: c});
+            }
+        }
+    }
+    internalWalls.sort(() => rnd() - 0.5);
+    // Knock down about 15% of internal walls to create multiple looping paths
+    let wallsToKnock = Math.floor(internalWalls.length * 0.15);
+    for (let i = 0; i < wallsToKnock; i++) {
+        let w = internalWalls[i];
+        baseMazeGrid[w.r][w.c] = 0;
+    }
+
+    // 3rd: Carve spacious 3x3 central chamber destination
     let midR = Math.floor(rows / 2);
     let midC = Math.floor(cols / 2);
     for (let r = midR - 1; r <= midR + 1; r++) {
@@ -366,21 +386,18 @@ function setupPerimeterRound() {
     let currentPos = (basePos + (lvl1Round - 1)) % 4; // Rotates 90 deg clockwise per round
 
     let midCoord = mazeWidth / 2;
-    let outerOffset = 15;
+    let outerOffset = 18; // Clearly outside the perimeter wall
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
 
-    // Find a valid path cell on the outer perimeter wall to use as the open entrance door
     let targetRow = 0, targetCol = Math.floor(cols / 2);
     if (currentPos === 0) { targetRow = 0; targetCol = Math.floor(cols / 2); }
     else if (currentPos === 1) { targetRow = Math.floor(rows / 2); targetCol = 0; }
     else if (currentPos === 2) { targetRow = rows - 1; targetCol = Math.floor(cols / 2); }
     else if (currentPos === 3) { targetRow = Math.floor(rows / 2); targetCol = cols - 1; }
 
-    // Scan along that perimeter to find an open path connection
     entranceCoord = { r: targetRow, c: targetCol };
-    activeGrid[entranceCoord.r][entranceCoord.c] = 0; // Open door
+    activeGrid[entranceCoord.r][entranceCoord.c] = 0; // Ensure open entrance door
 
-    // Set player outside spawn position
     if (currentPos === 0) {
         playerX = targetCol * cellWidth + cellWidth / 2;
         playerY = outerOffset;
@@ -403,7 +420,7 @@ function drawTrueLabyrinth(sealed) {
 
     let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
     if (sealed) {
-        activeGrid[entranceCoord.r][entranceCoord.c] = 1; // Seal entrance door
+        activeGrid[entranceCoord.r][entranceCoord.c] = 1; // Seal entrance door behind player
     }
 
     ctx.save();
@@ -572,12 +589,11 @@ function gameLoop() {
             let nextY = playerY + rawDy + slipY;
 
             if (!hasEnteredLabyrinth) {
-                // Check if player crossed into the entrance cell to seal labyrinth and start timers
                 let ec = entranceCoord.c * cellWidth;
                 let er = entranceCoord.r * cellWidth;
                 if (nextX >= ec && nextX <= ec + cellWidth && nextY >= er && nextY <= er + cellWidth) {
                     hasEnteredLabyrinth = true;
-                    drawTrueLabyrinth(true); // Seal the entrance door behind player
+                    drawTrueLabyrinth(true); // Seal entrance door behind player
                     document.getElementById('maze-ui').style.display = 'block';
                     startMainTimer();
                     startGleamTimer();
@@ -590,7 +606,6 @@ function gameLoop() {
                 if (!checkWallCollision(playerX, nextY)) playerY = nextY;
                 checkOrbCollection();
             } else {
-                // Free movement outside before crossing threshold
                 playerX = nextX;
                 playerY = nextY;
             }
@@ -612,9 +627,15 @@ function gameLoop() {
 
                 if (lvl1Round < lvl1MaxRounds) {
                     lvl1Round++;
+                    gameTimer = roundTimes[lvl1Round - 1]; // Set round duration: 1m, 2m, 3m
                     glowTimeRemaining = 40;
                     setupPerimeterRound();
                     document.getElementById('lvl1-round-display').innerText = lvl1Round;
+                    
+                    let mins = Math.floor(gameTimer / 60);
+                    let secs = gameTimer % 60;
+                    document.getElementById('timer-display').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
                     drawTrueLabyrinth(false);
 
                     const playerCircle = document.getElementById('player-circle');
