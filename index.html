@@ -92,7 +92,7 @@ In order to maintain the connection to your Energy's Source, for Level 1, you mu
     <!-- External Top HUD Display -->
     <div id="hudContainer">
         <div class="hud-item">Time: <span id="timerValue" class="hud-value">60.0</span>s</div>
-        <div class="hud-item">Round: <span id="roundValue" class="hud-value">1/3</span></div>
+        <div class="hud-item">Round: <span id="roundValue" class="hud-value">1/4</span></div>
         <div class="hud-item">
             Kinetic Output: 
             <div id="kineticWrapper"><div id="kineticBar"></div></div>
@@ -119,13 +119,13 @@ In order to maintain the connection to your Energy's Source, for Level 1, you mu
             <button onclick="startLevel2()">Initialize Resonance</button>
         </div>
 
-        <!-- Anti-AFK Warning Screen -->
+        <!-- Failure / Warning Screen -->
         <div id="lvl2WarningScreen" class="screen-overlay" style="display: none; z-index: 300;">
             <h2 style="color: #ff3366; margin-top:0; letter-spacing: 2px;">CALIBRATION FAILED</h2>
             <p style="color: #fff; margin-bottom: 30px;">
-                In order to get an accurate reading, you have to actually MOVE.
+                Your momentum has completely stalled (Velocity reached 0). The connection has been lost.
             </p>
-            <button onclick="restartLvl2Round1()">Restart Round 1</button>
+            <button onclick="restartLvl2Round1()">Restart Level 2</button>
         </div>
 
         <!-- Level 2 Results Screen -->
@@ -141,7 +141,6 @@ In order to maintain the connection to your Energy's Source, for Level 1, you mu
 
 <!-- LEVEL 3 CONTAINER -->
 <div id="level3-container">
-    <div id="lvl3ShockwaveLayer"></div>
     <h1>Level 3: Finding Your Rhythm (Core Harmony)</h1>
     
     <!-- Top HUD Container Area -->
@@ -152,6 +151,7 @@ In order to maintain the connection to your Energy's Source, for Level 1, you mu
     </div>
 
     <div id="lvl3GameContainer">
+        <div id="lvl3ShockwaveLayer"></div>
         <canvas id="lvl3GameCanvas" width="800" height="450"></canvas>
         <div id="lvl3Vignette"></div>
         
