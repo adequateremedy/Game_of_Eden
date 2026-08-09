@@ -108,7 +108,7 @@ function playAudio(src) {
 }
 
 // ==========================================
-// LEVEL 1: ESSENCE DEVELOPMENT (SQUARE MAZE WITH SLIPPY MOVEMENT & TREMOR JITTER)
+// LEVEL 1: ESSENCE DEVELOPMENT (TRUE COMPLEX SQUARE MAZE)
 // ==========================================
 const loreData = [
     `Your Agni Essence embodies an intense, consuming passion that ignites creativity and drives ambition forward with unstoppable momentum. This fierce energy easily spills over into a volatile, explosive anger when restricted, burning through boundaries with sharp impatience. Yet, beneath the aggression lies a warm, radiant joy that offers comfort, protection, and deep inspiration to those nearby. It also carries a sharp, critical judgment, fiercely cutting away falsehoods to seek absolute purity and truth. Finally, it harbors a restless anxiety, a constant, flickering fear of depletion that forces it to always seek new fuel to sustain its brilliant light.`,
@@ -126,27 +126,26 @@ const circleConfigs = [
 
 let selectedColorHex = '';
 let chosenMazeIndex = 0;
-let playerX = 220;
-let playerY = 220;
-let playerRadius = 4;
+let playerX = 30;
+let playerY = 30;
+let playerRadius = 3.5;
 let playerActive = false;
 let keys = {};
 
-let gameTimer = 180; // 3 minutes for all 3 rounds
+let gameTimer = 180;
 let timerInterval = null;
 let totalOrbsCollected = 0;
-let glowTimeRemaining = 35;
+let glowTimeRemaining = 40;
 let activeOrbs = [];
 let lvl1Round = 1;
 const lvl1MaxRounds = 3;
 
-// Square maze dimensions & wall grid structure
-const mazeSize = 440;
-const gridSize = 11; // 11x11 grid cells
-const cellSize = mazeSize / gridSize;
-let squareMazeWalls = []; 
-// 0 = open, 1 = wall
-// We store base walls, and rotate them 90 deg clockwise per round
+// True labyrinth grid structure (odd dimensions for standard maze generation: 21x21 cells)
+const mazeCanvasWidth = 440;
+const cols = 21; 
+const rows = 21;
+const cellWidth = mazeCanvasWidth / cols;
+let baseMazeGrid = []; // 2D array: 1 = wall, 0 = path
 
 window.addEventListener('keydown', (e) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
@@ -275,9 +274,9 @@ function finishSelection() {
         totalOrbsCollected = 0;
         gameTimer = 180;
         
-        generateSquareMaze();
-        setupSquareRound();
-        drawSquareMaze();
+        generateTrueLabyrinth();
+        setupLabyrinthRound();
+        drawTrueLabyrinth();
 
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
@@ -292,103 +291,136 @@ function finishSelection() {
     }, 1000);
 }
 
-function generateSquareMaze() {
-    // Generate base 11x11 grid with deterministic pseudo-random walls
-    squareMazeWalls = [];
-    let seed = (chosenMazeIndex + 1) * 999;
+function generateTrueLabyrinth() {
+    // Initialize all as walls (1)
+    baseMazeGrid = Array(rows).fill(0).map(() => Array(cols).fill(1));
+
+    let seed = (chosenMazeIndex + 1) * 777;
     function rnd() {
         seed = (seed * 9301 + 49297) % 233280;
         return seed / 233280;
     }
 
-    for (let r = 0; r < gridSize; r++) {
-        let row = [];
-        for (let c = 0; c < gridSize; c++) {
-            // Outer boundaries are walls, inner cells have walls based on rnd
-            if (r === 0 || r === gridSize - 1 || c === 0 || c === gridSize - 1) {
-                row.push(1);
-            } else {
-                // Leave center open (r=5, c=5) and clear paths
-                if ((r === 5 && c === 5) || (r === 5) || (c === 5)) {
-                    row.push(0);
-                } else {
-                    row.push(rnd() > 0.65 ? 1 : 0);
+    // Randomized Depth-First Search (DFS) Maze Generation Algorithm
+    let stack = [];
+    let startR = 1;
+    let startC = 1;
+    baseMazeGrid[startR][startC] = 0;
+    stack.push({r: startR, c: startC});
+
+    while(stack.length > 0) {
+        let current = stack[stack.length - 1];
+        let neighbors = [];
+        let directions = [
+            {dr: -2, dc: 0}, {dr: 2, dc: 0},
+            {dr: 0, dc: -2}, {dr: 0, dc: 2}
+        ];
+
+        for (let d of directions) {
+            let nr = current.r + d.dr;
+            let nc = current.c + d.dc;
+            if (nr > 0 && nr < rows - 1 && nc > 0 && nc < cols - 1) {
+                if (baseMazeGrid[nr][nc] === 1) {
+                    neighbors.push({r: nr, c: nc, dr: d.dr, dc: d.dc});
                 }
             }
         }
-        squareMazeWalls.push(row);
+
+        if (neighbors.length > 0) {
+            // Shuffle neighbors pseudo-randomly
+            neighbors.sort(() => rnd() - 0.5);
+            let next = neighbors[0];
+            
+            // Carve path between current and neighbor
+            baseMazeGrid[current.r + next.dr / 2][current.c + next.dc / 2] = 0;
+            baseMazeGrid[next.r][next.c] = 0;
+            stack.push({r: next.r, c: next.c});
+        } else {
+            stack.pop();
+        }
+    }
+
+    // Carve a spacious 3x3 central chamber
+    let midR = Math.floor(rows / 2);
+    let midC = Math.floor(cols / 2);
+    for (let r = midR - 1; r <= midR + 1; r++) {
+        for (let c = midC - 1; c <= midC + 1; c++) {
+            baseMazeGrid[r][c] = 0;
+        }
     }
 }
 
-function getRotatedGrid(walls, rotationCount) {
-    let grid = JSON.parse(JSON.stringify(walls));
+function getRotatedGrid(grid, rotationCount) {
+    let res = JSON.parse(JSON.stringify(grid));
     for (let rot = 0; rot < rotationCount; rot++) {
-        let n = grid.length;
+        let n = res.length;
         let ret = Array(n).fill(0).map(() => Array(n).fill(0));
         for (let r = 0; r < n; r++) {
             for (let c = 0; c < n; c++) {
-                ret[c][n - 1 - r] = grid[r][c];
+                ret[c][n - 1 - r] = res[r][c];
             }
         }
-        grid = ret;
+        res = ret;
     }
-    return grid;
+    return res;
 }
 
-function setupSquareRound() {
-    // Determine start coordinate based on element & round rotation
-    // Agni=Top, Jala=Left, Prithvi=Bottom, Vayu=Right
-    let basePosIndex = chosenMazeIndex; // 0:Agni, 1:Jala, 2:Prithvi, 3:Vayu
-    let currentPosIndex = (basePosIndex + (lvl1Round - 1)) % 4; // Rotate 90 deg clockwise per round
+function setupLabyrinthRound() {
+    // 0: Agni (Top outer wall), 1: Jala (Left outer wall), 2: Prithvi (Bottom outer wall), 3: Vayu (Right outer wall)
+    let basePos = chosenMazeIndex;
+    let currentPos = (basePos + (lvl1Round - 1)) % 4; // Rotates 90 deg clockwise per round
 
-    let mid = Math.floor(gridSize / 2) * cellSize + cellSize / 2;
-    if (currentPosIndex === 0) {
-        // Top start
-        playerX = mid;
-        playerY = cellSize * 1.2;
-    } else if (currentPosIndex === 1) {
-        // Left start
-        playerX = cellSize * 1.2;
-        playerY = mid;
-    } else if (currentPosIndex === 2) {
-        // Bottom start
-        playerX = mid;
-        playerY = mazeSize - cellSize * 1.2;
+    let midCoord = mazeCanvasWidth / 2;
+    let offset = cellWidth * 1.5;
+
+    if (currentPos === 0) {
+        // Top Perimeter
+        playerX = midCoord;
+        playerY = offset;
+    } else if (currentPos === 1) {
+        // Left Perimeter
+        playerX = offset;
+        playerY = midCoord;
+    } else if (currentPos === 2) {
+        // Bottom Perimeter
+        playerX = midCoord;
+        playerY = mazeCanvasWidth - offset;
     } else {
-        // Right start
-        playerX = mazeSize - cellSize * 1.2;
-        playerY = mid;
+        // Right Perimeter
+        playerX = mazeCanvasWidth - offset;
+        playerY = midCoord;
     }
 }
 
-function drawSquareMaze() {
+function drawTrueLabyrinth() {
     const canvas = document.getElementById('mazeCanvas');
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    let activeGrid = getRotatedGrid(squareMazeWalls, lvl1Round - 1);
+    let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
 
     ctx.save();
     ctx.strokeStyle = selectedColorHex;
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2;
     ctx.shadowBlur = 10;
     ctx.shadowColor = selectedColorHex;
 
-    for (let r = 0; r < gridSize; r++) {
-        for (let c = 0; c < gridSize; c++) {
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
             if (activeGrid[r][c] === 1) {
-                ctx.fillStyle = 'rgba(20, 20, 25, 0.8)';
-                ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
-                ctx.strokeRect(c * cellSize, r * cellSize, cellSize, cellSize);
+                ctx.fillStyle = 'rgba(18, 18, 24, 0.9)';
+                ctx.fillRect(c * cellWidth, r * cellWidth, cellWidth, cellWidth);
+                ctx.strokeRect(c * cellWidth, r * cellWidth, cellWidth, cellWidth);
             }
         }
     }
 
-    // Draw center goal zone
-    let centerCoord = Math.floor(gridSize / 2) * cellSize;
+    // Highlight Central Chamber
+    let midR = Math.floor(rows / 2);
+    let midC = Math.floor(cols / 2);
     ctx.fillStyle = selectedColorHex;
-    ctx.shadowBlur = 15;
-    ctx.fillRect(centerCoord + 4, centerCoord + 4, cellSize - 8, cellSize - 8);
+    ctx.shadowBlur = 20;
+    ctx.fillRect((midC - 1) * cellWidth + 2, (midR - 1) * cellWidth + 2, (cellWidth * 3) - 4, (cellWidth * 3) - 4);
 
     ctx.restore();
 }
@@ -399,7 +431,7 @@ function closeMazeInstructions() {
     instructionBox.style.pointerEvents = 'none';
     setTimeout(() => {
         instructionBox.style.display = 'none';
-        drawSquareMaze();
+        drawTrueLabyrinth();
         spawnInitialOrbs();
 
         const playerCircle = document.getElementById('player-circle');
@@ -460,15 +492,15 @@ function spawnInitialOrbs() {
 }
 
 function spawnSingleOrb() {
-    let activeGrid = getRotatedGrid(squareMazeWalls, lvl1Round - 1);
+    let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
     let rx, ry, valid = false;
     
     while (!valid) {
-        let c = Math.floor(Math.random() * (gridSize - 2)) + 1;
-        let r = Math.floor(Math.random() * (gridSize - 2)) + 1;
+        let c = Math.floor(Math.random() * (cols - 4)) + 2;
+        let r = Math.floor(Math.random() * (rows - 4)) + 2;
         if (activeGrid[r][c] === 0) {
-            rx = c * cellSize + cellSize / 2;
-            ry = r * cellSize + cellSize / 2;
+            rx = c * cellWidth + cellWidth / 2;
+            ry = r * cellWidth + cellWidth / 2;
             valid = true;
         }
     }
@@ -491,7 +523,7 @@ function checkOrbCollection() {
         let dy = playerY - orb.y;
         let distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < playerRadius + 10) {
+        if (distance < playerRadius + 8) {
             orb.element.remove();
             activeOrbs.splice(i, 1);
 
@@ -508,18 +540,18 @@ function checkOrbCollection() {
     }
 }
 
-function checkSquareCollision(x, y) {
-    let activeGrid = getRotatedGrid(squareMazeWalls, lvl1Round - 1);
-    let c = Math.floor(x / cellSize);
-    let r = Math.floor(y / cellSize);
+function checkWallCollision(x, y) {
+    let activeGrid = getRotatedGrid(baseMazeGrid, lvl1Round - 1);
+    let c = Math.floor(x / cellWidth);
+    let r = Math.floor(y / cellWidth);
 
-    if (c < 0 || c >= gridSize || r < 0 || r >= gridSize) return true;
+    if (c < 0 || c >= cols || r < 0 || r >= rows) return true;
     return activeGrid[r][c] === 1;
 }
 
 function gameLoop() {
     if (playerActive) {
-        let baseSpeed = 2.2;
+        let baseSpeed = 2.0;
         let rawDx = 0;
         let rawDy = 0;
 
@@ -530,22 +562,28 @@ function gameLoop() {
 
         if (rawDx !== 0 || rawDy !== 0) {
             // UNSTABLE OFF-AXIS SLIP & INERTIA
-            let slipFactor = 0.25;
+            let slipFactor = 0.35;
             let slipX = (Math.random() - 0.5) * slipFactor * baseSpeed;
             let slipY = (Math.random() - 0.5) * slipFactor * baseSpeed;
 
             let nextX = playerX + rawDx + slipX;
             let nextY = playerY + rawDy + slipY;
 
-            if (!checkSquareCollision(nextX, playerY)) playerX = nextX;
-            if (!checkSquareCollision(playerX, nextY)) playerY = nextY;
+            if (!checkWallCollision(nextX, playerY)) playerX = nextX;
+            if (!checkWallCollision(playerX, nextY)) playerY = nextY;
 
             checkOrbCollection();
 
-            // Check if player reached center goal zone
-            let midCoord = Math.floor(gridSize / 2) * cellSize;
-            if (playerX >= midCoord && playerX <= midCoord + cellSize &&
-                playerY >= midCoord && playerY <= midCoord + cellSize) {
+            // Check if player reached the center chamber zone
+            let midR = Math.floor(rows / 2);
+            let midC = Math.floor(cols / 2);
+            let chamberMinX = (midC - 1) * cellWidth;
+            let chamberMaxX = (midC + 2) * cellWidth;
+            let chamberMinY = (midR - 1) * cellWidth;
+            let chamberMaxY = (midR + 2) * cellWidth;
+
+            if (playerX >= chamberMinX && playerX <= chamberMaxX &&
+                playerY >= chamberMinY && playerY <= chamberMaxY) {
                 
                 playerActive = false;
                 activeOrbs.forEach(o => o.element.remove());
@@ -553,10 +591,10 @@ function gameLoop() {
 
                 if (lvl1Round < lvl1MaxRounds) {
                     lvl1Round++;
-                    glowTimeRemaining = 35;
-                    setupSquareRound();
+                    glowTimeRemaining = 40;
+                    setupLabyrinthRound();
                     document.getElementById('lvl1-round-display').innerText = lvl1Round;
-                    drawSquareMaze();
+                    drawTrueLabyrinth();
 
                     const playerCircle = document.getElementById('player-circle');
                     playerCircle.style.left = `${playerX}px`;
@@ -592,7 +630,7 @@ function gameLoop() {
 
                         transitionContent.innerHTML = `
                             <p style="font-size: 18px; color: #00ffcc; margin-bottom: 20px;">LEVEL 1: SOURCE CONNECTION ESTABLISHED</p>
-                            <p>You have successfully stabilized your Energy's connection across all 3 rotating square rounds.</p>
+                            <p>You have successfully navigated all 3 complex rotating labyrinth rounds.</p>
                             <div style="background: #1a1a22; padding: 15px 25px; border-radius: 4px; border: 1px solid #b87333; margin: 20px 0; font-size: 15px; text-align: left;">
                                 -> Total Orbs Collected: <strong>${totalOrbsCollected}</strong><br>
                                 -> Final Calculated Power Rating (Total ÷ 4): <strong>${finalCalculatedOrbs}</strong>
@@ -612,8 +650,8 @@ function gameLoop() {
         }
 
         // AURA TREMOR JITTER (Micro-shake effect)
-        let jitterX = (Math.random() - 0.5) * 3;
-        let jitterY = (Math.random() - 0.5) * 3;
+        let jitterX = (Math.random() - 0.5) * 4;
+        let jitterY = (Math.random() - 0.5) * 4;
 
         const playerCircle = document.getElementById('player-circle');
         playerCircle.style.left = `${playerX + jitterX}px`;
@@ -1709,7 +1747,7 @@ Your understanding of this Power is ${coherenceName}, which means that ${coheren
 Because of the Rhythm and Frequency of your emotional state, the vibration of your Essence ${vibrationText}, and ${powerName} has a ${accuracy}% chance of connecting an attack, when used.<br><br>
 Due to the density of this Energy's Core, you were able to obtain a total of ${finalDmg} DMG for ${powerName}, per connected hit.<br><br>
 ${powerName} will consume ${drainPercent}% of your total Essence, each time it is used (regardless if it connects or not).<br><br>
-<strong>RP Application Example:</strong><br>
+<strong>RP Application Experience:</strong><br>
 *You tap into your ${element} core, your body language ${expressionText} as you channel the ${attachedEmotion} within. Around you, it ${manifestationText}, glowing with a bright ${auraColor}. Shaped by your emotional Rhythm and Frequency, ${powerName} ${movementText} at a velocity of ${finalVelocity}. Once unleashed, this concentrated Energy is amplified by a ${multiplier.toFixed(1)}x core density, making it capable of delivering a final output of ${finalDmg} DMG (Base ${baseDmg} x ${multiplier.toFixed(1)}) upon contact. Depending on the target's resilience, this strike can ${impactDescription}, instantly consuming ${drainText} of your Essence to sustain the strike.*<br>
 ============================================================
     `;
