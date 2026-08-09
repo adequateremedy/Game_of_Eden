@@ -807,6 +807,8 @@ let lvl2CurrentKinetic = 0;
 let lvl2AccumulatedKinetic = 0;
 let lvl2KineticTicks = 0;
 
+let bgParticles = [];
+
 const lvl2Player = {
     x: 400,
     y: 370,
@@ -820,11 +822,183 @@ const lvl2Player = {
     trail: []
 };
 
+function initLvl2Background() {
+    const bgCanvas = document.getElementById("lvl2BgCanvas");
+    if (!bgCanvas) return;
+    bgCanvas.width = window.innerWidth;
+    bgCanvas.height = window.innerHeight;
+    bgParticles = [];
+    
+    for(let i=0; i<300; i++) {
+        bgParticles.push({
+            x: Math.random() * bgCanvas.width,
+            y: Math.random() * bgCanvas.height,
+            vx: (Math.random() - 0.5) * 1.5,
+            vy: (Math.random() - 0.5) * 1.5,
+            angle: Math.random() * Math.PI * 2,
+            dist: 20 + Math.random() * 150
+        });
+    }
+}
+
+function drawLvl2Background() {
+    const bgCanvas = document.getElementById("lvl2BgCanvas");
+    if (!bgCanvas) return;
+    const ctx = bgCanvas.getContext("2d");
+    
+    if (bgCanvas.width !== window.innerWidth || bgCanvas.height !== window.innerHeight) {
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
+    }
+
+    ctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+    
+    let cx = bgCanvas.width / 2;
+    let cy = bgCanvas.height / 2;
+    let elapsed = (performance.now() - lvl2StartTime) / 1000;
+    
+    ctx.strokeStyle = selectedColorHex;
+    ctx.fillStyle = selectedColorHex;
+    
+    if (lvl2Round === 1) {
+        // ROUND 1: PLASMA (Chaotic Ignition)
+        ctx.shadowColor = selectedColorHex;
+        ctx.shadowBlur = 20 + Math.random() * 20;
+        
+        ctx.globalAlpha = Math.random() * 0.4 + 0.1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 100 + Math.random() * 20, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.lineWidth = 2 + Math.random() * 3;
+        for (let i = 0; i < 15; i++) {
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            let curX = cx;
+            let curY = cy;
+            let angle = Math.random() * Math.PI * 2;
+            for (let j = 0; j < 8; j++) {
+                let dist = 30 + Math.random() * 50;
+                angle += (Math.random() - 0.5) * 2.0;
+                curX += Math.cos(angle) * dist;
+                curY += Math.sin(angle) * dist;
+                ctx.lineTo(curX, curY);
+            }
+            ctx.globalAlpha = Math.random() * 0.6 + 0.2;
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1.0;
+        ctx.shadowBlur = 0;
+        
+    } else if (lvl2Round === 2) {
+        // ROUND 2: GAS (Dispersed Particles)
+        ctx.shadowColor = selectedColorHex;
+        ctx.shadowBlur = 15;
+        ctx.globalAlpha = 0.4;
+        
+        bgParticles.forEach((p, index) => {
+            p.x += p.vx + Math.sin(elapsed * 1.5 + p.angle);
+            p.y += p.vy + Math.cos(elapsed * 1.2 + p.angle);
+            
+            if(p.x < 0) p.x = bgCanvas.width;
+            if(p.x > bgCanvas.width) p.x = 0;
+            if(p.y < 0) p.y = bgCanvas.height;
+            if(p.y > bgCanvas.height) p.y = 0;
+
+            ctx.beginPath();
+            let size = (p.dist / 40) + Math.sin(elapsed * 3 + index) * 2;
+            if(size < 1) size = 1;
+            ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+        ctx.shadowBlur = 0;
+        
+    } else if (lvl2Round === 3) {
+        // ROUND 3: LIQUID (Flowing Undulation)
+        ctx.shadowColor = selectedColorHex;
+        ctx.shadowBlur = 20;
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = 0.5;
+        
+        for (let ring = 1; ring <= 7; ring++) {
+            ctx.beginPath();
+            for (let a = 0; a <= Math.PI * 2 + 0.1; a += 0.15) {
+                let r = ring * 45 + Math.sin(a * 4 + elapsed * 2) * 20 + Math.cos(a * 3 - elapsed) * 25;
+                let x = cx + r * Math.cos(a);
+                let y = cy + r * Math.sin(a);
+                if (a === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1.0;
+        ctx.shadowBlur = 0;
+        
+    } else if (lvl2Round === 4) {
+        // ROUND 4: SOLID (Forging the Mandala)
+        ctx.shadowColor = selectedColorHex;
+        ctx.shadowBlur = 15;
+        ctx.lineWidth = 2;
+        
+        let progress = elapsed / lvl2Duration;
+        if (progress > 1) progress = 1;
+        
+        let maxA = progress * Math.PI * 34; 
+        
+        ctx.beginPath();
+        let lastX = cx;
+        let lastY = cy;
+        
+        for (let a = 0; a <= maxA; a += 0.04) {
+            let R = 220;
+            let rad = 85; 
+            let d = 140;
+            let theta = a;
+            let x = cx + (R - rad) * Math.cos(theta) + d * Math.cos(((R - rad) / rad) * theta);
+            let y = cy + (R - rad) * Math.sin(theta) - d * Math.sin(((R - rad) / rad) * theta);
+            
+            if (a === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+            
+            lastX = x;
+            lastY = y;
+        }
+        ctx.globalAlpha = 0.7;
+        ctx.stroke();
+        
+        // Point of light sculpting the pattern
+        if (progress < 1.0) {
+            ctx.globalAlpha = 1.0;
+            ctx.beginPath();
+            ctx.arc(lastX, lastY, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            
+            ctx.shadowBlur = 30;
+            ctx.fillStyle = selectedColorHex;
+            ctx.beginPath();
+            ctx.arc(lastX, lastY, 12, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.globalAlpha = 0.5 + 0.3 * Math.sin(elapsed * 5);
+            ctx.stroke();
+        }
+        
+        ctx.globalAlpha = 1.0;
+        ctx.shadowBlur = 0;
+    }
+}
+
 function startLevel2() {
     if (selectedColorHex) {
         lvl2Player.color = selectedColorHex;
         document.getElementById('level2-container').style.setProperty('--core-color', selectedColorHex);
     }
+    
+    initLvl2Background();
     
     playAudio('assets/Merciless Engines.mp3');
 
@@ -852,9 +1026,6 @@ function startLevel2() {
 function startLvl2Round() {
     lvl2CurrentKinetic = 0;
     lvl2Frames = 0;
-    
-    const container = document.getElementById('level2-container');
-    container.className = 'state-round-' + lvl2Round;
     
     lvl2StartTime = performance.now();
     lvl2GameActive = true;
@@ -1145,6 +1316,7 @@ function lvl2GameLoop() {
         return;
     }
     
+    drawLvl2Background();
     updateLvl2PlayerLogic();
     drawLvl2Screen();
     updateLvl2HUD();
