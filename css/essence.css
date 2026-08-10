@@ -46,7 +46,7 @@ body, html {
     width: 100%;
     animation: zoomInTitle 2s ease-out 2s forwards;
     filter: drop-shadow(5px 5px 8px rgba(0, 0, 0, 1));
-    pointer-events: none;
+    pointer-events: none; /* Prevent stealing clicks */
 }
 
 #level1-container h1 {
@@ -81,8 +81,8 @@ body, html {
     text-transform: uppercase;
     animation: fadeInButton 1s ease-out 4s forwards;
     transition: transform 0.2s, background 0.2s;
-    z-index: 9999;
-    pointer-events: auto;
+    z-index: 9999; /* Force to front */
+    pointer-events: auto; /* Ensure it is always clickable */
 }
 
 #start-btn:hover {
@@ -271,14 +271,13 @@ body, html {
     border: 1px solid #b87333;
     border-radius: 4px;
     transition: opacity 1.5s ease;
-    z-index: 50;
 }
 
 /* Player Circle at Entrance */
 #player-circle {
     position: absolute;
-    width: 12px;
-    height: 12px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     border: 2px solid #fff;
     transform: translate(-50%, -50%);
@@ -291,12 +290,12 @@ body, html {
 /* Tiny White Orbs */
 .tiny-orb {
     position: absolute;
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     background-color: #ffffff;
     border-radius: 50%;
     transform: translate(-50%, -50%);
-    box-shadow: 0 0 8px #ffffff;
+    box-shadow: 0 0 6px #ffffff;
     z-index: 5;
     opacity: 0;
     transition: opacity 1s ease;
@@ -304,9 +303,9 @@ body, html {
 }
 
 @keyframes orbPulse {
-    0% { transform: translate(-50%, -50%) scale(0.8); box-shadow: 0 0 5px #fff; }
-    50% { transform: translate(-50%, -50%) scale(1.3); box-shadow: 0 0 12px #fff; }
-    100% { transform: translate(-50%, -50%) scale(0.8); box-shadow: 0 0 5px #fff; }
+    0% { transform: translate(-50%, -50%) scale(0.8); box-shadow: 0 0 4px #fff; }
+    50% { transform: translate(-50%, -50%) scale(1.3); box-shadow: 0 0 10px #fff; }
+    100% { transform: translate(-50%, -50%) scale(0.8); box-shadow: 0 0 4px #fff; }
 }
 
 /* Second Separate Instruction Popup Box */
@@ -420,7 +419,7 @@ body, html {
     background-color: #0b0b0d;
     color: #ffffff;
     font-family: 'Courier New', Courier, monospace;
-    display: none;
+    display: none; /* Flex when activated */
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -431,9 +430,10 @@ body, html {
     left: 0;
     z-index: 100;
     overflow: hidden;
-    --core-color: #00ffcc;
+    --core-color: #00ffcc; /* Dynamically injected by JS */
 }
 
+/* Dedicated Background Canvas for Transformative States */
 #lvl2BgCanvas {
     position: absolute;
     top: 0;
@@ -444,6 +444,7 @@ body, html {
     pointer-events: none;
 }
 
+/* Keep internal UI and Canvas above the animated background */
 #level2-container h1, 
 #hudContainer, 
 #gameContainer {
@@ -490,6 +491,7 @@ body, html {
     color: #ffcc00;
 }
 
+/* Kinetic Bar HUD Addition */
 #kineticWrapper {
     width: 100px;
     height: 12px;
@@ -514,6 +516,7 @@ body, html {
     height: 400px;
 }
 
+/* Semi-Transparent Frosted Glass Canvas */
 #gameCanvas {
     border: 4px solid #2d2d35;
     background-color: rgba(17, 17, 21, 0.45);
@@ -539,6 +542,7 @@ body, html {
     border: 4px solid #2d2d35;
 }
 
+/* Fully Transparent background for results screen so the mandala shines through clearly */
 #resultsScreen {
     background: rgba(11, 11, 13, 0.0) !important;
 }
@@ -602,7 +606,7 @@ body, html {
     background-color: #050508;
     color: #ffffff;
     font-family: 'Courier New', Courier, monospace;
-    display: none;
+    display: none; /* Flex when activated */
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -613,9 +617,10 @@ body, html {
     left: 0;
     z-index: 200;
     overflow: hidden;
-    --core-color: #ff3366;
+    --core-color: #ff3366; /* Dynamically injected by JS */
 }
 
+/* Level 3 Shockwave Effect Layer */
 #lvl3ShockwaveLayer {
     position: absolute;
     top: 0;
