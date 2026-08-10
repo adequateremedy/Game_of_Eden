@@ -108,7 +108,7 @@ function playAudio(src) {
 }
 
 // ==========================================
-// LEVEL 1: ESSENCE DEVELOPMENT (TRUE CIRCULAR LABYRINTH W/ PIXEL COLLISION)
+// LEVEL 1: ESSENCE DEVELOPMENT
 // ==========================================
 const loreData = [
     `Your Agni Essence embodies an intense, consuming passion that ignites creativity and drives ambition forward with unstoppable momentum. This fierce energy easily spills over into a volatile, explosive anger when restricted, burning through boundaries with sharp impatience. Yet, beneath the aggression lies a warm, radiant joy that offers comfort, protection, and deep inspiration to those nearby. It also carries a sharp, critical judgment, fiercely cutting away falsehoods to seek absolute purity and truth. Finally, it harbors a restless anxiety, a constant, flickering fear of depletion that forces it to always seek new fuel to sustain its brilliant light.`,
@@ -126,30 +126,23 @@ const circleConfigs = [
 
 let selectedColorHex = '';
 let chosenMazeIndex = 0;
-let playerX = 220;
+let currentMazeGrid = null;
+let chosenEntranceIndex = null;
+let playerX = 0;
 let playerY = 0;
-let playerRadius = 3.5;
+let playerRadius = 3; 
 let playerActive = false;
 let keys = {};
+let ringWidth = 0;
+const ringsCount = 10;
 
-const roundTimes = [60, 120, 180]; // Escalating Round Timers: 1m, 2m, 3m
-let gameTimer = 60;
+let gameStarted = false;
+let gameTimer = 300; 
 let timerInterval = null;
-let totalOrbsCollected = 0;
-let glowTimeRemaining = 40;
+let orbsCollectedCount = 0;
+let glowTimeRemaining = 20; 
 let activeOrbs = [];
-let lvl1Round = 1;
-const lvl1MaxRounds = 3;
-let hasEnteredLabyrinth = false;
-
-// Circular Maze Parameters
-const mazeRings = 7;
-const mazeSectors = 24; 
-const mazeRadius = 190;
-const cx = 220;
-const cy = 220;
-let cMazeGrid = []; 
-let entranceSector = 0;
+let hasEnteredMaze = false;
 
 window.addEventListener('keydown', (e) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
@@ -157,6 +150,7 @@ window.addEventListener('keydown', (e) => {
     }
     keys[e.key.toLowerCase()] = true;
     
+    // Level 3 Rapid Tap Integration
     if (e.code === 'Space') {
         if (typeof lvl3Tap === 'function' && !e.repeat) {
             lvl3Tap();
@@ -274,13 +268,16 @@ function finishSelection() {
         const mazeContainer = document.getElementById('maze-container');
         mazeContainer.style.display = 'flex';
         
-        lvl1Round = 1;
-        totalOrbsCollected = 0;
-        gameTimer = roundTimes[0];
-        
-        generateCircularLabyrinth();
-        setupPerimeterRound();
-        drawCircularLabyrinth(false);
+        currentMazeGrid = buildMazeGrid();
+        const outerRingIdx = currentMazeGrid.length - 1;
+        let seed = (chosenMazeIndex + 1) * 9999;
+        function tempRandom() {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+        }
+        chosenEntranceIndex = Math.floor(tempRandom() * currentMazeGrid[outerRingIdx].length);
+
+        drawPacManCircularMaze(false);
 
         setTimeout(() => {
             mazeContainer.style.opacity = '1';
@@ -295,189 +292,13 @@ function finishSelection() {
     }, 1000);
 }
 
-function generateCircularLabyrinth() {
-    cMazeGrid = [];
-    for(let r=1; r<=mazeRings; r++) {
-        let ring = [];
-        for(let t=0; t<mazeSectors; t++) {
-            // inner: wall facing toward center (r-1). ccw: wall facing counter-clockwise (t-1)
-            ring.push({ inner: true, ccw: true }); 
-        }
-        cMazeGrid.push(ring);
-    }
-
-    let seed = (chosenMazeIndex + 1) * 777;
-    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-
-    let stack = [{r: mazeRings, t: 0}];
-    let visited = new Set();
-    visited.add(`${mazeRings},0`);
-
-    // DFS generation
-    while(stack.length > 0) {
-        let current = stack[stack.length - 1];
-        let neighbors = [];
-        
-        if (current.r < mazeRings && !visited.has(`${current.r+1},${current.t}`)) 
-            neighbors.push({r: current.r+1, t: current.t, wall: 'outer'});
-        if (current.r > 1 && !visited.has(`${current.r-1},${current.t}`)) 
-            neighbors.push({r: current.r-1, t: current.t, wall: 'inner'});
-        
-        let cwT = (current.t + 1) % mazeSectors;
-        if (!visited.has(`${current.r},${cwT}`)) 
-            neighbors.push({r: current.r, t: cwT, wall: 'cw'});
-        
-        let ccwT = (current.t - 1 + mazeSectors) % mazeSectors;
-        if (!visited.has(`${current.r},${ccwT}`)) 
-            neighbors.push({r: current.r, t: ccwT, wall: 'ccw'});
-
-        if (neighbors.length > 0) {
-            neighbors.sort(() => rnd() - 0.5);
-            let next = neighbors[0];
-            
-            // Knock down wall between current and next
-            if (next.wall === 'inner') cMazeGrid[current.r-1][current.t].inner = false;
-            if (next.wall === 'outer') cMazeGrid[next.r-1][next.t].inner = false;       
-            if (next.wall === 'ccw') cMazeGrid[current.r-1][current.t].ccw = false;     
-            if (next.wall === 'cw') cMazeGrid[next.r-1][next.t].ccw = false;            
-
-            visited.add(`${next.r},${next.t}`);
-            stack.push(next);
-        } else {
-            stack.pop();
-        }
-    }
-    
-    // Braiding: Create multiple paths by selectively removing walls
-    let deadEndsToRemove = 10 + (lvl1Round * 2); // Scales difficulty based on round
-    for(let i=0; i<deadEndsToRemove; i++) {
-        let rr = Math.floor(rnd() * (mazeRings - 1)) + 2; 
-        let tt = Math.floor(rnd() * mazeSectors);
-        if (rnd() > 0.5) cMazeGrid[rr-1][tt].inner = false;
-        else cMazeGrid[rr-1][tt].ccw = false;
-    }
-
-    // Guarantee 3 distinct inner access points to the center chamber (Ring 1)
-    let p1 = 0;
-    let p2 = Math.floor(mazeSectors / 3);
-    let p3 = Math.floor((mazeSectors * 2) / 3);
-    cMazeGrid[0][p1].inner = false;
-    cMazeGrid[0][p2].inner = false;
-    cMazeGrid[0][p3].inner = false;
-}
-
-let startSectorOffsets = [
-    Math.floor(mazeSectors * 0.75), // Agni (Top, -90deg mapped to 270deg offset)
-    Math.floor(mazeSectors * 0.5),  // Jala (Left, 180deg)
-    Math.floor(mazeSectors * 0.25), // Prithvi (Bottom, 90deg)
-    0                               // Vayu (Right, 0deg)
-];
-
-function setupPerimeterRound() {
-    hasEnteredLabyrinth = false;
-    let basePos = chosenMazeIndex; 
-    
-    // 90-degree clockwise rotation offset per round
-    let rotOffset = (lvl1Round - 1) * Math.floor(mazeSectors / 4);
-    entranceSector = (startSectorOffsets[basePos] + rotOffset) % mazeSectors;
-    
-    // Position player cleanly 1 ring-width outside the entrance door
-    let angleStep = (Math.PI * 2) / mazeSectors;
-    let angle = (entranceSector + 0.5) * angleStep;
-    let ringSpacing = mazeRadius / mazeRings;
-    
-    playerX = cx + Math.cos(angle) * (mazeRadius + ringSpacing);
-    playerY = cy + Math.sin(angle) * (mazeRadius + ringSpacing);
-}
-
-function drawCircularLabyrinth(sealed) {
-    const canvas = document.getElementById('mazeCanvas');
-    const ctx = canvas.getContext('2d');
-    const hiddenCanvas = document.getElementById('hiddenMazeCanvas');
-    const hCtx = hiddenCanvas.getContext('2d', { willReadFrequently: true });
-
-    // Clear and reset canvases
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    hCtx.fillStyle = '#ffffff'; // White = open path for pixel collision
-    hCtx.fillRect(0, 0, hiddenCanvas.width, hiddenCanvas.height);
-    
-    // Thematic visual styling
-    ctx.strokeStyle = selectedColorHex;
-    ctx.lineWidth = 2.5;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = selectedColorHex;
-    
-    // Hidden pixel-collision styling
-    hCtx.strokeStyle = '#000000'; // Black = solid wall
-    hCtx.lineWidth = 6; 
-    hCtx.lineCap = 'round';
-
-    let ringSpacing = mazeRadius / mazeRings;
-    let angleStep = (Math.PI * 2) / mazeSectors;
-
-    for(let r=1; r<=mazeRings; r++) {
-        let radius = r * ringSpacing;
-        for(let t=0; t<mazeSectors; t++) {
-            let startAngle = t * angleStep;
-            let endAngle = (t + 1) * angleStep;
-            
-            // Inner concentric walls
-            if (cMazeGrid[r-1][t].inner) {
-                drawArc(ctx, hCtx, cx, cy, radius - ringSpacing, startAngle, endAngle);
-            }
-            
-            // Radial crossing walls
-            if (cMazeGrid[r-1][t].ccw) {
-                let rInner = (r - 1) * ringSpacing;
-                let rOuter = r * ringSpacing;
-                drawLine(ctx, hCtx, 
-                    cx + Math.cos(startAngle)*rInner, cy + Math.sin(startAngle)*rInner,
-                    cx + Math.cos(startAngle)*rOuter, cy + Math.sin(startAngle)*rOuter
-                );
-            }
-
-            // Solid outer perimeter wall
-            if (r === mazeRings) {
-                // Keep entrance open if not yet entered
-                if (sealed || t !== entranceSector) {
-                    drawArc(ctx, hCtx, cx, cy, radius, startAngle, endAngle);
-                }
-            }
-        }
-    }
-
-    // Central Chamber Visuals
-    ctx.fillStyle = selectedColorHex;
-    ctx.shadowBlur = 20;
-    ctx.beginPath();
-    ctx.arc(cx, cy, ringSpacing * 0.6, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Central Chamber Collision Core (Block exact center)
-    hCtx.beginPath();
-    hCtx.arc(cx, cy, ringSpacing * 0.4, 0, Math.PI * 2);
-    hCtx.fillStyle = '#000000';
-    hCtx.fill();
-}
-
-function drawArc(ctx, hCtx, x, y, rad, start, end) {
-    if (rad <= 0) return;
-    ctx.beginPath(); ctx.arc(x, y, rad, start, end); ctx.stroke();
-    hCtx.beginPath(); hCtx.arc(x, y, rad, start, end); hCtx.stroke();
-}
-
-function drawLine(ctx, hCtx, x1, y1, x2, y2) {
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-    hCtx.beginPath(); hCtx.moveTo(x1, y1); hCtx.lineTo(x2, y2); hCtx.stroke();
-}
-
 function closeMazeInstructions() {
     const instructionBox = document.getElementById('maze-instruction-box');
     instructionBox.style.opacity = '0';
     instructionBox.style.pointerEvents = 'none';
     setTimeout(() => {
         instructionBox.style.display = 'none';
-        drawCircularLabyrinth(false);
+        drawPacManCircularMaze(true);
 
         const playerCircle = document.getElementById('player-circle');
         playerCircle.style.backgroundColor = selectedColorHex;
@@ -490,16 +311,188 @@ function closeMazeInstructions() {
     }, 1000);
 }
 
+class Cell {
+    constructor(ring, thetaIndex, totalThetas) {
+        this.ring = ring; 
+        this.thetaIndex = thetaIndex; 
+        this.totalThetas = totalThetas;
+        this.visited = false;
+        this.walls = { inward: true, outward: true, cw: true, ccw: true };
+        this.neighbors = [];
+    }
+}
+
+function buildMazeGrid() {
+    let grid = [];
+    let seed = (chosenMazeIndex + 1) * 1337;
+    function random() {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed / 233280;
+    }
+
+    for (let r = 0; r < ringsCount; r++) {
+        let cellsInRing;
+        if (r === 0) {
+            cellsInRing = 1; 
+        } else {
+            let estimatedCells = Math.round(r * 5);
+            let prevRingCount = grid[r - 1].length;
+            let ratio = Math.round(estimatedCells / prevRingCount);
+            cellsInRing = prevRingCount * (ratio || 1);
+        }
+        
+        let ringCells = [];
+        for (let t = 0; t < cellsInRing; t++) {
+            ringCells.push(new Cell(r, t, cellsInRing));
+        }
+        grid.push(ringCells);
+    }
+
+    for (let r = 0; r < ringsCount; r++) {
+        let ringCells = grid[r];
+        for (let t = 0; t < ringCells.length; t++) {
+            let cell = ringCells[t];
+            
+            if (ringCells.length > 1) {
+                cell.neighbors.push({ cell: ringCells[(t + 1) % ringCells.length], wall: 'cw', oppWall: 'ccw' });
+                cell.neighbors.push({ cell: ringCells[(t - 1 + ringCells.length) % ringCells.length], wall: 'ccw', oppWall: 'cw' });
+            }
+            if (r > 0) {
+                let innerRing = grid[r - 1];
+                let ratio = ringCells.length / innerRing.length;
+                let innerIndex = Math.floor(t / ratio);
+                cell.neighbors.push({ cell: innerRing[innerIndex], wall: 'inward', oppWall: 'outward' });
+            }
+            if (r < ringsCount - 1) {
+                let outerRing = grid[r + 1];
+                let ratio = outerRing.length / ringCells.length;
+                let outerStart = t * ratio;
+                for (let o = 0; o < ratio; o++) {
+                    cell.neighbors.push({ cell: outerRing[outerStart + o], wall: 'outward', oppWall: 'inward' });
+                }
+            }
+        }
+    }
+
+    let stack = [];
+    let current = grid[0][0]; 
+    current.visited = true;
+    
+    while (true) {
+        let unvisited = current.neighbors.filter(n => !n.cell.visited);
+        
+        if (unvisited.length > 0) {
+            let nextEdge = unvisited[Math.floor(random() * unvisited.length)];
+            let nextCell = nextEdge.cell;
+            
+            current.walls[nextEdge.wall] = false;
+            nextCell.walls[nextEdge.oppWall] = false;
+            
+            nextCell.visited = true;
+            stack.push(current);
+            current = nextCell;
+        } else if (stack.length > 0) {
+            current = stack.pop();
+        } else {
+            break;
+        }
+    }
+
+    grid[0][0].walls.cw = false;
+    grid[0][0].walls.ccw = false;
+    grid0_0_inward_fix(grid);
+
+    return grid;
+}
+
+function drawPacManCircularMaze(showEntrance) {
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    ringWidth = (canvas.width / 2 - 30) / ringsCount; 
+    const grid = currentMazeGrid;
+
+    const outerRingIdx = ringsCount - 1;
+    if (showEntrance && chosenEntranceIndex !== null && !hasEnteredMaze) {
+        grid[outerRingIdx][chosenEntranceIndex].walls.outward = false;
+    } else if (hasEnteredMaze) {
+        grid[outerRingIdx][chosenEntranceIndex].walls.outward = true;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.strokeStyle = selectedColorHex; 
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = selectedColorHex;
+
+    for (let r = 0; r < ringsCount; r++) {
+        let ringCells = grid[r];
+        let innerRadius = r * ringWidth;
+        let outerRadius = (r + 1) * ringWidth;
+
+        for (let t = 0; t < ringCells.length; t++) {
+            let cell = ringCells[t];
+            let startAngle = (t / cell.totalThetas) * 2 * Math.PI;
+            let endAngle = ((t + 1) / cell.totalThetas) * 2 * Math.PI;
+
+            if (showEntrance && !hasEnteredMaze && r === outerRingIdx && t === chosenEntranceIndex) {
+                let midAngle = (startAngle + endAngle) / 2;
+                let spawnRadius = outerRadius + 18;
+                playerX = cx + spawnRadius * Math.cos(midAngle);
+                playerY = cy + spawnRadius * Math.sin(midAngle);
+            }
+
+            if (cell.walls.cw && r > 0) {
+                ctx.beginPath();
+                ctx.moveTo(cx + innerRadius * Math.cos(endAngle), cy + innerRadius * Math.sin(endAngle));
+                ctx.lineTo(cx + outerRadius * Math.cos(endAngle), cy + outerRadius * Math.sin(endAngle));
+                ctx.stroke();
+            }
+
+            if (cell.walls.inward && r > 1) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, innerRadius, startAngle, endAngle);
+                ctx.stroke();
+            }
+            
+            if (cell.walls.outward && r === ringsCount - 1) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, outerRadius, startAngle, endAngle);
+                ctx.stroke();
+            }
+        }
+    }
+    ctx.restore();
+}
+
+function grid0_0_inward_fix(grid) {
+    grid[0][0].walls.inward = false;
+    if (grid[1]) {
+        for (let cell of grid[1]) {
+            cell.walls.inward = false;
+        }
+    }
+}
+
+function triggerMazeEntry() {
+    hasEnteredMaze = true;
+    drawPacManCircularMaze(true);
+    spawnInitialOrbs();
+    document.getElementById('maze-ui').style.display = 'block';
+    startMainTimer();
+    startGleamTimer();
+}
+
 function startMainTimer() {
     timerInterval = setInterval(() => {
         gameTimer--;
-        let mins = Math.floor(gameTimer / 60);
-        let secs = gameTimer % 60;
-        document.getElementById('timer-display').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-        
         if (gameTimer <= 0) {
             clearInterval(timerInterval);
-            timerInterval = null;
             location.reload();
         }
     }, 1000);
@@ -512,8 +505,8 @@ function startGleamTimer() {
         glowTimeRemaining--;
 
         let playerCircle = document.getElementById('player-circle');
-        if (glowTimeRemaining <= 10 && glowTimeRemaining > 0) {
-            let opacityFactor = glowTimeRemaining / 10; 
+        if (glowTimeRemaining <= 5 && glowTimeRemaining > 0) {
+            let opacityFactor = glowTimeRemaining / 5; 
             playerCircle.style.boxShadow = `0 0 ${Math.floor(25 * opacityFactor)}px ${selectedColorHex}`;
             playerCircle.style.opacity = opacityFactor;
         } else if (glowTimeRemaining <= 0) {
@@ -527,45 +520,47 @@ function startGleamTimer() {
 }
 
 function spawnInitialOrbs() {
-    for (let i = 0; i < 5; i++) { // Strict cap of 5
+    for (let i = 0; i < 5; i++) {
         spawnSingleOrb();
     }
 }
 
-function spawnSingleOrb() {
-    const hiddenCanvas = document.getElementById('hiddenMazeCanvas');
-    const hCtx = hiddenCanvas.getContext('2d', { willReadFrequently: true });
-
-    let rx, ry, valid = false;
-    let ringSpacing = mazeRadius / mazeRings;
-    let angleStep = (Math.PI * 2) / mazeSectors;
+function getRandomCellCoordinates() {
+    const canvas = document.getElementById('mazeCanvas');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
     
-    while (!valid) {
-        let r = Math.floor(Math.random() * (mazeRings - 1)) + 1; // Any inner ring (1 to mazeRings-1)
-        let t = Math.floor(Math.random() * mazeSectors);
-        
-        let radius = (r + 0.5) * ringSpacing;
-        let angle = (t + 0.5) * angleStep;
+    let r = Math.floor(Math.random() * (ringsCount - 1)) + 1;
+    let ringCells = currentMazeGrid[r];
+    let t = Math.floor(Math.random() * ringCells.length);
+    let startAngle = (t / ringCells[0].totalThetas) * 2 * Math.PI;
+    let endAngle = ((t + 1) / ringCells[0].totalThetas) * 2 * Math.PI;
+    let midAngle = (startAngle + endAngle) / 2;
+    let midRadius = (r + 0.5) * ringWidth;
 
-        rx = cx + Math.cos(angle) * radius;
-        ry = cy + Math.sin(angle) * radius;
+    let ox = cx + midRadius * Math.cos(midAngle);
+    let oy = cy + midRadius * Math.sin(midAngle);
 
-        // Verify pixel on hidden canvas is pure white (open path)
-        let pixel = hCtx.getImageData(rx, ry, 1, 1).data;
-        if (pixel[0] > 128) {
-            valid = true;
-        }
+    let dx = ox - playerX;
+    let dy = oy - playerY;
+    if (Math.sqrt(dx*dx + dy*dy) < 15) {
+        return getRandomCellCoordinates(); 
     }
 
+    return { x: ox, y: oy };
+}
+
+function spawnSingleOrb() {
+    let coords = getRandomCellCoordinates();
     let orbDiv = document.createElement('div');
     orbDiv.className = 'tiny-orb';
-    orbDiv.style.left = `${rx}px`;
-    orbDiv.style.top = `${ry}px`;
+    orbDiv.style.left = `${coords.x}px`;
+    orbDiv.style.top = `${coords.y}px`;
     
     document.getElementById('orbs-layer').appendChild(orbDiv);
     setTimeout(() => { orbDiv.style.opacity = '1'; }, 50);
 
-    activeOrbs.push({ element: orbDiv, x: rx, y: ry });
+    activeOrbs.push({ element: orbDiv, x: coords.x, y: coords.y });
 }
 
 function checkOrbCollection() {
@@ -575,124 +570,133 @@ function checkOrbCollection() {
         let dy = playerY - orb.y;
         let distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < playerRadius + 8) {
+        if (distance < playerRadius + 6) {
             orb.element.remove();
             activeOrbs.splice(i, 1);
 
-            totalOrbsCollected++;
-            document.getElementById('orb-counter').innerText = totalOrbsCollected;
+            orbsCollectedCount++;
+            document.getElementById('orb-counter').innerText = orbsCollectedCount;
 
-            glowTimeRemaining = Math.min(glowTimeRemaining + 15, 45);
+            glowTimeRemaining = Math.min(glowTimeRemaining + 10, 30);
             let playerCircle = document.getElementById('player-circle');
             playerCircle.style.opacity = '1';
             playerCircle.style.boxShadow = `0 0 25px ${selectedColorHex}`;
 
-            spawnSingleOrb(); // Maintain exact cap of 5
+            spawnSingleOrb();
         }
     }
 }
 
-function checkPixelCollision(x, y) {
-    const hiddenCanvas = document.getElementById('hiddenMazeCanvas');
-    const hCtx = hiddenCanvas.getContext('2d', { willReadFrequently: true });
-    
-    // Check points directly around player circumference
-    const pts = [
-        {px: x, py: y},
-        {px: x - playerRadius, py: y},
-        {px: x + playerRadius, py: y},
-        {px: x, py: y - playerRadius},
-        {px: x, py: y + playerRadius}
-    ];
+function checkCollision(nx, ny) {
+    const canvas = document.getElementById('mazeCanvas');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const maxRadius = ringsCount * ringWidth;
 
-    for (let p of pts) {
-        if (p.px < 0 || p.px >= 440 || p.py < 0 || p.py >= 440) return true;
-        let pixel = hCtx.getImageData(p.px, p.py, 1, 1).data;
-        if (pixel[0] < 128) return true; // Black pixel = Solid Wall
+    let dx = nx - cx;
+    let dy = ny - cy;
+    let distFromCenter = Math.sqrt(dx * dx + dy * dy);
+    let angle = Math.atan2(dy, dx);
+    if (angle < 0) angle += 2 * Math.PI;
+
+    const outerRingIdx = ringsCount - 1;
+    let outerCellCount = currentMazeGrid[outerRingIdx].length;
+    let outerThetaIdx = Math.floor((angle / (2 * Math.PI)) * outerCellCount);
+    let isOuterEntrance = (!hasEnteredMaze && outerThetaIdx === chosenEntranceIndex && !currentMazeGrid[outerRingIdx][outerThetaIdx].walls.outward);
+
+    if (distFromCenter > maxRadius - playerRadius) {
+        if (!isOuterEntrance || distFromCenter > maxRadius + 25) {
+            return true;
+        }
     }
+    if (distFromCenter < ringWidth - playerRadius && currentMazeGrid[0][0].walls.inward) {
+        return true;
+    }
+
+    let r = Math.floor(distFromCenter / ringWidth);
+    if (r < 0) r = 0;
+    if (r >= ringsCount) r = ringsCount - 1;
+
+    let ringCells = currentMazeGrid[r];
+    let t = Math.floor((angle / (2 * Math.PI)) * ringCells.length);
+    if (t < 0) t = 0;
+    if (t >= ringCells.length) t = ringCells.length - 1;
+
+    let cell = ringCells[t];
+    let startAngle = (t / cell.totalThetas) * 2 * Math.PI;
+    let endAngle = ((t + 1) / cell.totalThetas) * 2 * Math.PI;
+
+    let innerR = r * ringWidth;
+    let outerR = (r + 1) * ringWidth;
+
+    if (cell.walls.inward && distFromCenter - playerRadius < innerR && r > 0) return true;
+    if (cell.walls.outward && distFromCenter + playerRadius > outerR && r < ringsCount - 1) return true;
+
+    function normalizeAngle(a) {
+        while (a < 0) a += 2 * Math.PI;
+        while (a >= 2 * Math.PI) a -= 2 * Math.PI;
+        return a;
+    }
+
+    let angleToStart = Math.abs(normalizeAngle(angle - startAngle));
+    if (angleToStart > Math.PI) angleToStart = 2 * Math.PI - angleToStart;
+    let arcDistStart = distFromCenter * angleToStart;
+
+    let angleToEnd = Math.abs(normalizeAngle(angle - endAngle));
+    if (angleToEnd > Math.PI) angleToEnd = 2 * Math.PI - angleToEnd;
+    let arcDistEnd = distFromCenter * angleToEnd;
+
+    let wallBuffer = playerRadius + 1;
+
+    if (cell.walls.ccw && arcDistStart < wallBuffer) return true;
+    if (cell.walls.cw && arcDistEnd < wallBuffer) return true;
+
     return false;
 }
 
 function gameLoop() {
     if (playerActive) {
-        let baseSpeed = 2.0;
-        let rawDx = 0;
-        let rawDy = 0;
+        let speed = 2;
+        let dx = 0;
+        let dy = 0;
 
-        if (keys['arrowup'] || keys['w']) rawDy -= baseSpeed;
-        if (keys['arrowdown'] || keys['s']) rawDy += baseSpeed;
-        if (keys['arrowleft'] || keys['a']) rawDx -= baseSpeed;
-        if (keys['arrowright'] || keys['d']) rawDx += baseSpeed;
+        if (keys['arrowup'] || keys['w']) dy -= speed;
+        if (keys['arrowdown'] || keys['s']) dy += speed;
+        if (keys['arrowleft'] || keys['a']) dx -= speed;
+        if (keys['arrowright'] || keys['d']) dx += speed;
 
-        if (rawDx !== 0 || rawDy !== 0) {
-            let slipFactor = 0.35;
-            let slipX = (Math.random() - 0.5) * slipFactor * baseSpeed;
-            let slipY = (Math.random() - 0.5) * slipFactor * baseSpeed;
+        if (dx !== 0 || dy !== 0) {
+            let nextX = playerX + dx;
+            let nextY = playerY + dy;
 
-            let nextX = playerX + rawDx + slipX;
-            let nextY = playerY + rawDy + slipY;
-
-            let distFromCenter = Math.hypot(nextX - cx, nextY - cy);
-
-            if (!hasEnteredLabyrinth) {
-                // Prevent walking around the outside perimeter, lock movement inward through the door
-                playerX = nextX;
-                playerY = nextY;
-
-                // Threshold Check: Moving ~2 blocks deep inside the perimeter radius
-                if (distFromCenter < mazeRadius - 15) {
-                    hasEnteredLabyrinth = true;
-                    drawCircularLabyrinth(true); // Snap entrance door shut
-                    document.getElementById('maze-ui').style.display = 'block';
-                    startMainTimer();
-                    startGleamTimer();
-                    spawnInitialOrbs();
-                }
-            } else {
-                // Pixel-Perfect Collision verification for complex curves
-                if (!checkPixelCollision(nextX, nextY)) {
+            if (!hasEnteredMaze) {
+                const canvas = document.getElementById('mazeCanvas');
+                let distToCenter = Math.sqrt((nextX - canvas.width/2)**2 + (nextY - canvas.height/2)**2);
+                let maxRadius = ringsCount * ringWidth;
+                
+                if (distToCenter < maxRadius - playerRadius - 4) {
                     playerX = nextX;
                     playerY = nextY;
+                    triggerMazeEntry();
                 } else {
-                    if (!checkPixelCollision(nextX, playerY)) playerX = nextX;
-                    if (!checkPixelCollision(playerX, nextY)) playerY = nextY;
+                    if (!checkCollision(nextX, playerY)) playerX = nextX;
+                    if (!checkCollision(playerX, nextY)) playerY = nextY;
                 }
+            } else {
+                if (!checkCollision(nextX, playerY)) playerX = nextX;
+                if (!checkCollision(playerX, nextY)) playerY = nextY;
+
                 checkOrbCollection();
-            }
 
-            // Check if player reached central destination chamber
-            let ringSpacing = mazeRadius / mazeRings;
-            if (hasEnteredLabyrinth && distFromCenter < ringSpacing) {
+                const canvas = document.getElementById('mazeCanvas');
+                let distToCenter = Math.sqrt((playerX - canvas.width/2)**2 + (playerY - canvas.height/2)**2);
                 
-                playerActive = false;
-                activeOrbs.forEach(o => o.element.remove());
-                activeOrbs = [];
-
-                if (lvl1Round < lvl1MaxRounds) {
-                    lvl1Round++;
-                    gameTimer = roundTimes[lvl1Round - 1]; // 1m, 2m, 3m based on round
-                    glowTimeRemaining = 40;
+                if (distToCenter < ringWidth) {
+                    playerActive = false;
+                    clearInterval(timerInterval);
                     
-                    generateCircularLabyrinth();
-                    setupPerimeterRound();
-                    document.getElementById('lvl1-round-display').innerText = lvl1Round;
-                    
-                    let mins = Math.floor(gameTimer / 60);
-                    let secs = gameTimer % 60;
-                    document.getElementById('timer-display').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-
-                    drawCircularLabyrinth(false);
-
-                    const playerCircle = document.getElementById('player-circle');
-                    playerCircle.style.left = `${playerX}px`;
-                    playerCircle.style.top = `${playerY}px`;
-                    playerCircle.style.opacity = '1';
-                    playerActive = true;
-                } else {
-                    if (timerInterval) {
-                        clearInterval(timerInterval);
-                        timerInterval = null;
-                    }
+                    window.playerStats.orbsCollected = orbsCollectedCount;
+                    window.playerStats.mazeTimeLeft = gameTimer;
 
                     const mazeContainer = document.getElementById('maze-container');
                     const mazeUI = document.getElementById('maze-ui');
@@ -710,17 +714,16 @@ function gameLoop() {
                         const transitionPopup = document.getElementById('transition-popup-box');
                         const transitionContent = document.getElementById('transition-popup-content');
                         
-                        let finalCalculatedOrbs = Math.round(totalOrbsCollected / 4);
-                        if (finalCalculatedOrbs < 1) finalCalculatedOrbs = 1;
-                        if (finalCalculatedOrbs > 20) finalCalculatedOrbs = 20;
-                        window.playerStats.orbsCollected = finalCalculatedOrbs;
+                        let mins = Math.floor(gameTimer / 60);
+                        let secs = gameTimer % 60;
+                        let timeStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 
                         transitionContent.innerHTML = `
                             <p style="font-size: 18px; color: #00ffcc; margin-bottom: 20px;">LEVEL 1: SOURCE CONNECTION ESTABLISHED</p>
-                            <p>You have successfully navigated all 3 escalating circular labyrinth rounds.</p>
+                            <p>You have successfully stabilized your Energy's connection to the Source.</p>
                             <div style="background: #1a1a22; padding: 15px 25px; border-radius: 4px; border: 1px solid #b87333; margin: 20px 0; font-size: 15px; text-align: left;">
-                                -> Total Orbs Collected: <strong>${totalOrbsCollected}</strong><br>
-                                -> Final Calculated Power Rating (Total ÷ 4): <strong>${finalCalculatedOrbs}</strong>
+                                -> Orbs Collected: <strong>${orbsCollectedCount} / 20</strong><br>
+                                -> Time Remaining: <strong>${timeStr}</strong>
                             </div>
                             <button class="btn" onclick="transitionToLevel2()">Proceed to Level 2</button>
                         `;
@@ -734,15 +737,11 @@ function gameLoop() {
                     }, 1500);
                 }
             }
+
+            const playerCircle = document.getElementById('player-circle');
+            playerCircle.style.left = `${playerX}px`;
+            playerCircle.style.top = `${playerY}px`;
         }
-
-        // AURA TREMOR JITTER
-        let jitterX = (Math.random() - 0.5) * 4;
-        let jitterY = (Math.random() - 0.5) * 4;
-
-        const playerCircle = document.getElementById('player-circle');
-        playerCircle.style.left = `${playerX + jitterX}px`;
-        playerCircle.style.top = `${playerY + jitterY}px`;
     }
     requestAnimationFrame(gameLoop);
 }
@@ -933,6 +932,7 @@ function drawLvl2Background() {
     ctx.fillStyle = selectedColorHex;
     
     if (lvl2Round === 1) {
+        // ROUND 1: PLASMA -> EXPLOSION WITH WALL BOUNCES
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 20;
         
@@ -983,6 +983,7 @@ function drawLvl2Background() {
         }
         
     } else if (lvl2Round === 2) {
+        // ROUND 2: GAS (Bouncing Particles) -> PULLED TO CENTER
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 15;
         
@@ -1015,6 +1016,7 @@ function drawLvl2Background() {
         }
         
     } else if (lvl2Round === 3) {
+        // ROUND 3: LIQUID ORBIT -> SOLID MANDALA
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 10;
 
@@ -1109,6 +1111,8 @@ function startLevel2() {
     }
     
     initLvl2Background();
+    
+    // SWITCHED AUDIO: Level 2 now plays Voltz.mp3
     playAudio('assets/Voltz.mp3');
 
     document.getElementById("introScreen").style.display = "none";
@@ -1516,6 +1520,7 @@ function startLevel3() {
         document.getElementById('level3-container').style.setProperty('--core-color', selectedColorHex);
     }
 
+    // SWITCHED AUDIO: Level 3 now plays Merciless Engines.mp3
     playAudio('assets/Merciless Engines.mp3');
 
     document.getElementById("lvl3IntroScreen").style.display = "none";
@@ -1834,7 +1839,7 @@ Your understanding of this Power is ${coherenceName}, which means that ${coheren
 Because of the Rhythm and Frequency of your emotional state, the vibration of your Essence ${vibrationText}, and ${powerName} has a ${accuracy}% chance of connecting an attack, when used.<br><br>
 Due to the density of this Energy's Core, you were able to obtain a total of ${finalDmg} DMG for ${powerName}, per connected hit.<br><br>
 ${powerName} will consume ${drainPercent}% of your total Essence, each time it is used (regardless if it connects or not).<br><br>
-<strong>RP Application Experience:</strong><br>
+<strong>RP Application Example:</strong><br>
 *You tap into your ${element} core, your body language ${expressionText} as you channel the ${attachedEmotion} within. Around you, it ${manifestationText}, glowing with a bright ${auraColor}. Shaped by your emotional Rhythm and Frequency, ${powerName} ${movementText} at a velocity of ${finalVelocity}. Once unleashed, this concentrated Energy is amplified by a ${multiplier.toFixed(1)}x core density, making it capable of delivering a final output of ${finalDmg} DMG (Base ${baseDmg} x ${multiplier.toFixed(1)}) upon contact. Depending on the target's resilience, this strike can ${impactDescription}, instantly consuming ${drainText} of your Essence to sustain the strike.*<br>
 ============================================================
     `;
