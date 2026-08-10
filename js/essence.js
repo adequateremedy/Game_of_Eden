@@ -124,6 +124,12 @@ const circleConfigs = [
     { name: 'Vayu', detail: 'Vayu (air)', bg: '#ffff00', color: '#000', shadow: 'none', aura: 'Yellow Aura' }
 ];
 
+// Progression Variables
+const roundRings = [10, 12, 13];
+const roundMaxOrbs = [5, 6, 7];
+const roundTimes = [60, 120, 180];
+const roundCanvasSizes = [440, 516, 554];
+
 let selectedColorHex = '';
 let chosenMazeIndex = 0;
 let currentMazeGrid = null;
@@ -134,14 +140,14 @@ let playerRadius = 3;
 let playerActive = false;
 let keys = {};
 let ringWidth = 0;
-let ringsCount = 10;
-let currentCanvasSize = 440;
 
-const roundTimes = [60, 120, 180];
 let lvl1Round = 1;
+let ringsCount = roundRings[0];
+let currentCanvasSize = roundCanvasSizes[0];
+let currentMaxOrbs = roundMaxOrbs[0];
+let gameTimer = roundTimes[0]; 
 
 let gameStarted = false;
-let gameTimer = 60; 
 let timerInterval = null;
 let orbsCollectedCount = 0;
 let glowTimeRemaining = 20; 
@@ -232,7 +238,9 @@ function fadeTextOut() {
 function selectCircle(selectedIndex) {
     selectedColorHex = circleConfigs[selectedIndex].bg;
     chosenMazeIndex = selectedIndex; 
-    
+    document.getElementById('round-transition-box').style.borderColor = selectedColorHex;
+    document.getElementById('round-transition-box').style.boxShadow = `0 0 25px ${selectedColorHex}`;
+
     window.playerStats.element = circleConfigs[selectedIndex].name;
     window.playerStats.elementDetail = circleConfigs[selectedIndex].detail;
     window.playerStats.auraColor = circleConfigs[selectedIndex].aura;
@@ -286,8 +294,9 @@ function finishSelection() {
         mazeContainer.style.display = 'flex';
         
         lvl1Round = 1;
-        ringsCount = 10;
-        currentCanvasSize = 440;
+        ringsCount = roundRings[0];
+        currentCanvasSize = roundCanvasSizes[0];
+        currentMaxOrbs = roundMaxOrbs[0];
         gameTimer = roundTimes[0];
         orbsCollectedCount = 0;
         resizeMazeContainer();
@@ -366,16 +375,15 @@ function restartLevel1() {
     setTimeout(() => {
         failBox.style.display = 'none';
         
-        // Reset variables back to Round 1 state
         lvl1Round = 1;
-        ringsCount = 10;
-        currentCanvasSize = 440;
+        ringsCount = roundRings[0];
+        currentCanvasSize = roundCanvasSizes[0];
+        currentMaxOrbs = roundMaxOrbs[0];
         gameTimer = roundTimes[0];
         orbsCollectedCount = 0;
         glowTimeRemaining = 20;
         hasEnteredMaze = false;
         
-        // Update UI
         document.getElementById('lvl1-round-display').innerText = lvl1Round;
         let mins = Math.floor(gameTimer / 60);
         let secs = gameTimer % 60;
@@ -383,7 +391,6 @@ function restartLevel1() {
         document.getElementById('orb-counter').innerText = orbsCollectedCount;
         document.getElementById('maze-ui').style.display = 'none';
         
-        // Rebuild the maze
         resizeMazeContainer();
         currentMazeGrid = buildMazeGrid();
         let seed = (chosenMazeIndex + 1) * 9999 + lvl1Round;
@@ -393,9 +400,8 @@ function restartLevel1() {
         }
         chosenEntranceIndex = Math.floor(tempRandom() * currentMazeGrid[ringsCount - 1].length);
         
-        drawPacManCircularMaze(false);
+        drawPacManCircularMaze(true);
         
-        // Reset player visual and location
         const playerCircle = document.getElementById('player-circle');
         playerCircle.style.backgroundColor = selectedColorHex;
         playerCircle.style.boxShadow = `0 0 25px ${selectedColorHex}`;
@@ -403,7 +409,6 @@ function restartLevel1() {
         playerCircle.style.top = `${playerY}px`;
         playerCircle.style.opacity = '1';
         
-        // Reset movement keys
         for (let key in keys) { keys[key] = false; }
         
         playerActive = true;
@@ -622,7 +627,7 @@ function startGleamTimer() {
 }
 
 function spawnInitialOrbs() {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < currentMaxOrbs; i++) {
         spawnSingleOrb();
     }
 }
@@ -666,6 +671,10 @@ function spawnSingleOrb() {
 }
 
 function checkOrbCollection() {
+    const canvas = document.getElementById('mazeCanvas');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
     for (let i = activeOrbs.length - 1; i >= 0; i--) {
         let orb = activeOrbs[i];
         let dx = playerX - orb.x;
@@ -673,24 +682,37 @@ function checkOrbCollection() {
         let distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < playerRadius + 12) {
-            orb.element.remove();
-            activeOrbs.splice(i, 1);
+            let pDist = Math.hypot(playerX - cx, playerY - cy);
+            let oDist = Math.hypot(orb.x - cx, orb.y - cy);
+            
+            let pRing = Math.floor(pDist / ringWidth);
+            let oRing = Math.floor(oDist / ringWidth);
+            
+            if (pRing < 0) pRing = 0;
+            if (pRing >= ringsCount) pRing = ringsCount - 1;
+            if (oRing < 0) oRing = 0;
+            if (oRing >= ringsCount) oRing = ringsCount - 1;
 
-            orbsCollectedCount++;
-            document.getElementById('orb-counter').innerText = orbsCollectedCount;
+            if (pRing === oRing) {
+                orb.element.remove();
+                activeOrbs.splice(i, 1);
 
-            glowTimeRemaining = Math.min(glowTimeRemaining + 10, 30);
-            let playerCircle = document.getElementById('player-circle');
-            playerCircle.style.opacity = '1';
-            playerCircle.style.boxShadow = `0 0 25px ${selectedColorHex}`;
+                orbsCollectedCount++;
+                document.getElementById('orb-counter').innerText = orbsCollectedCount;
 
-            if (deathTimer) {
-                clearTimeout(deathTimer);
-                deathTimer = null;
-                startGleamTimer();
+                glowTimeRemaining = Math.min(glowTimeRemaining + 10, 30);
+                let playerCircle = document.getElementById('player-circle');
+                playerCircle.style.opacity = '1';
+                playerCircle.style.boxShadow = `0 0 25px ${selectedColorHex}`;
+
+                if (deathTimer) {
+                    clearTimeout(deathTimer);
+                    deathTimer = null;
+                    startGleamTimer();
+                }
+
+                spawnSingleOrb();
             }
-
-            spawnSingleOrb();
         }
     }
 }
@@ -762,6 +784,128 @@ function checkCollision(nx, ny) {
     return false;
 }
 
+// ROUND TRANSITION UI
+function showRoundTransitionPopup() {
+    const popup = document.getElementById('round-transition-box');
+    const content = document.getElementById('round-transition-content');
+    
+    content.innerHTML = `
+        <h2 style="color: ${selectedColorHex}; font-size: 32px; letter-spacing: 2px; margin-bottom: 20px; text-transform: uppercase;">ROUND ${lvl1Round} COMPLETE</h2>
+        <div style="background: #1a1a22; padding: 15px 25px; border-radius: 4px; border: 1px solid #b87333; margin: 20px 0; font-size: 15px; text-align: left; color: #fff;">
+            -> Total Orbs Collected: <strong>${orbsCollectedCount}</strong><br>
+            -> Time Remaining: <strong>${Math.floor(gameTimer/60)}:${(gameTimer%60).toString().padStart(2, '0')}</strong>
+        </div>
+        <button class="btn" onclick="startNextRound()">Begin Round ${lvl1Round + 1}</button>
+    `;
+    
+    const mazeContainer = document.getElementById('maze-container');
+    const mazeUI = document.getElementById('maze-ui');
+    
+    mazeContainer.style.transition = 'opacity 1s ease';
+    mazeUI.style.transition = 'opacity 1s ease';
+    mazeContainer.style.opacity = '0';
+    mazeUI.style.opacity = '0';
+    
+    setTimeout(() => {
+        popup.style.display = 'flex';
+        popup.style.pointerEvents = 'auto';
+        setTimeout(() => {
+            popup.style.opacity = '1';
+        }, 50);
+    }, 1000);
+}
+
+function startNextRound() {
+    const popup = document.getElementById('round-transition-box');
+    popup.style.opacity = '0';
+    popup.style.pointerEvents = 'none';
+    
+    setTimeout(() => {
+        popup.style.display = 'none';
+        
+        lvl1Round++;
+        ringsCount = roundRings[lvl1Round - 1];
+        currentCanvasSize = roundCanvasSizes[lvl1Round - 1];
+        currentMaxOrbs = roundMaxOrbs[lvl1Round - 1];
+        gameTimer = roundTimes[lvl1Round - 1];
+        
+        document.getElementById('lvl1-round-display').innerText = lvl1Round;
+        let mins = Math.floor(gameTimer / 60);
+        let secs = gameTimer % 60;
+        document.getElementById('timer-display').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        
+        resizeMazeContainer();
+        currentMazeGrid = buildMazeGrid();
+        
+        let seed = (chosenMazeIndex + 1) * 9999 + lvl1Round;
+        function tempRandom() {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+        }
+        chosenEntranceIndex = Math.floor(tempRandom() * currentMazeGrid[ringsCount - 1].length);
+        
+        glowTimeRemaining = 20;
+        hasEnteredMaze = false;
+        
+        const mazeContainer = document.getElementById('maze-container');
+        mazeContainer.style.display = 'flex';
+        drawPacManCircularMaze(true);
+        
+        const playerCircle = document.getElementById('player-circle');
+        playerCircle.style.left = `${playerX}px`;
+        playerCircle.style.top = `${playerY}px`;
+        playerCircle.style.opacity = '1';
+        
+        setTimeout(() => {
+            mazeContainer.style.opacity = '1';
+            for (let key in keys) { keys[key] = false; }
+            playerActive = true;
+        }, 50);
+    }, 1000);
+}
+
+function showLevel1CompletePopup() {
+    window.playerStats.orbsCollected = orbsCollectedCount;
+    window.playerStats.mazeTimeLeft = gameTimer;
+
+    const mazeContainer = document.getElementById('maze-container');
+    const mazeUI = document.getElementById('maze-ui');
+    
+    mazeContainer.style.transition = 'opacity 1.5s ease';
+    mazeUI.style.transition = 'opacity 1.5s ease';
+    mazeContainer.style.opacity = '0';
+    mazeUI.style.opacity = '0';
+    
+    setTimeout(() => {
+        mazeContainer.style.display = 'none';
+        mazeUI.style.display = 'none';
+        
+        const transitionPopup = document.getElementById('transition-popup-box');
+        const transitionContent = document.getElementById('transition-popup-content');
+        
+        let mins = Math.floor(gameTimer / 60);
+        let secs = gameTimer % 60;
+        let timeStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+        transitionContent.innerHTML = `
+            <p style="font-size: 18px; color: #00ffcc; margin-bottom: 20px;">LEVEL 1: SOURCE CONNECTION ESTABLISHED</p>
+            <p>You have successfully stabilized your Energy's connection to the Source.</p>
+            <div style="background: #1a1a22; padding: 15px 25px; border-radius: 4px; border: 1px solid #b87333; margin: 20px 0; font-size: 15px; text-align: left;">
+                -> Total Orbs Collected: <strong>${orbsCollectedCount}</strong><br>
+                -> Time Remaining: <strong>${timeStr}</strong>
+            </div>
+            <button class="btn" onclick="transitionToLevel2()">Proceed to Level 2</button>
+        `;
+
+        transitionPopup.style.display = 'flex';
+        transitionPopup.style.pointerEvents = 'auto';
+        
+        setTimeout(() => {
+            transitionPopup.style.opacity = '1';
+        }, 50);
+    }, 1500);
+}
+
 function gameLoop() {
     if (playerActive) {
         let speed = 2;
@@ -812,83 +956,9 @@ function gameLoop() {
                     activeOrbs = [];
 
                     if (lvl1Round < 3) {
-                        lvl1Round++;
-                        if (lvl1Round === 2) {
-                            ringsCount = 12;
-                            currentCanvasSize = 516;
-                            gameTimer = 120;
-                        } else if (lvl1Round === 3) {
-                            ringsCount = 15;
-                            currentCanvasSize = 630;
-                            gameTimer = 180;
-                        }
-                        
-                        document.getElementById('lvl1-round-display').innerText = lvl1Round;
-                        let mins = Math.floor(gameTimer / 60);
-                        let secs = gameTimer % 60;
-                        document.getElementById('timer-display').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-                        
-                        resizeMazeContainer();
-                        currentMazeGrid = buildMazeGrid();
-                        
-                        let seed = (chosenMazeIndex + 1) * 9999 + lvl1Round;
-                        function tempRandom() {
-                            seed = (seed * 9301 + 49297) % 233280;
-                            return seed / 233280;
-                        }
-                        chosenEntranceIndex = Math.floor(tempRandom() * currentMazeGrid[ringsCount - 1].length);
-                        
-                        glowTimeRemaining = 20;
-                        hasEnteredMaze = false;
-                        drawPacManCircularMaze(true);
-                        
-                        const playerCircle = document.getElementById('player-circle');
-                        playerCircle.style.left = `${playerX}px`;
-                        playerCircle.style.top = `${playerY}px`;
-                        playerCircle.style.opacity = '1';
-                        
-                        playerActive = true;
+                        showRoundTransitionPopup();
                     } else {
-                        window.playerStats.orbsCollected = orbsCollectedCount;
-                        window.playerStats.mazeTimeLeft = gameTimer;
-
-                        const mazeContainer = document.getElementById('maze-container');
-                        const mazeUI = document.getElementById('maze-ui');
-                        
-                        mazeContainer.style.transition = 'opacity 1.5s ease';
-                        mazeUI.style.transition = 'opacity 1.5s ease';
-                        
-                        mazeContainer.style.opacity = '0';
-                        mazeUI.style.opacity = '0';
-                        
-                        setTimeout(() => {
-                            mazeContainer.style.display = 'none';
-                            mazeUI.style.display = 'none';
-                            
-                            const transitionPopup = document.getElementById('transition-popup-box');
-                            const transitionContent = document.getElementById('transition-popup-content');
-                            
-                            let mins = Math.floor(gameTimer / 60);
-                            let secs = gameTimer % 60;
-                            let timeStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-
-                            transitionContent.innerHTML = `
-                                <p style="font-size: 18px; color: #00ffcc; margin-bottom: 20px;">LEVEL 1: SOURCE CONNECTION ESTABLISHED</p>
-                                <p>You have successfully stabilized your Energy's connection to the Source.</p>
-                                <div style="background: #1a1a22; padding: 15px 25px; border-radius: 4px; border: 1px solid #b87333; margin: 20px 0; font-size: 15px; text-align: left;">
-                                    -> Orbs Collected: <strong>${orbsCollectedCount} / 20</strong><br>
-                                    -> Time Remaining: <strong>${timeStr}</strong>
-                                </div>
-                                <button class="btn" onclick="transitionToLevel2()">Proceed to Level 2</button>
-                            `;
-
-                            transitionPopup.style.display = 'flex';
-                            transitionPopup.style.pointerEvents = 'auto';
-                            
-                            setTimeout(() => {
-                                transitionPopup.style.opacity = '1';
-                            }, 50);
-                        }, 1500);
+                        showLevel1CompletePopup();
                     }
                 }
             }
@@ -1087,7 +1157,6 @@ function drawLvl2Background() {
     ctx.fillStyle = selectedColorHex;
     
     if (lvl2Round === 1) {
-        // ROUND 1: PLASMA -> EXPLOSION WITH WALL BOUNCES
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 20;
         
@@ -1138,7 +1207,6 @@ function drawLvl2Background() {
         }
         
     } else if (lvl2Round === 2) {
-        // ROUND 2: GAS (Bouncing Particles) -> PULLED TO CENTER
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 15;
         
@@ -1171,7 +1239,6 @@ function drawLvl2Background() {
         }
         
     } else if (lvl2Round === 3) {
-        // ROUND 3: LIQUID ORBIT -> SOLID MANDALA
         ctx.shadowColor = selectedColorHex;
         ctx.shadowBlur = 10;
 
@@ -1267,7 +1334,6 @@ function startLevel2() {
     
     initLvl2Background();
     
-    // SWITCHED AUDIO: Level 2 now plays Voltz.mp3
     playAudio('assets/Voltz.mp3');
 
     document.getElementById("introScreen").style.display = "none";
@@ -1675,7 +1741,6 @@ function startLevel3() {
         document.getElementById('level3-container').style.setProperty('--core-color', selectedColorHex);
     }
 
-    // SWITCHED AUDIO: Level 3 now plays Merciless Engines.mp3
     playAudio('assets/Merciless Engines.mp3');
 
     document.getElementById("lvl3IntroScreen").style.display = "none";
