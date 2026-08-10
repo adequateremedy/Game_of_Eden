@@ -340,6 +340,76 @@ function closeMazeInstructions() {
     }, 1000);
 }
 
+// LOCALIZED RESTART FOR LEVEL 1
+function triggerLevel1Fail() {
+    playerActive = false;
+    clearInterval(timerInterval);
+    clearInterval(glowInterval);
+    if (deathTimer) clearTimeout(deathTimer);
+    
+    activeOrbs.forEach(o => o.element.remove());
+    activeOrbs = [];
+    
+    const failBox = document.getElementById('lvl1-failure-box');
+    failBox.style.display = 'flex';
+    failBox.style.pointerEvents = 'auto';
+    setTimeout(() => {
+        failBox.style.opacity = '1';
+    }, 50);
+}
+
+function restartLevel1() {
+    const failBox = document.getElementById('lvl1-failure-box');
+    failBox.style.opacity = '0';
+    failBox.style.pointerEvents = 'none';
+    
+    setTimeout(() => {
+        failBox.style.display = 'none';
+        
+        // Reset variables back to Round 1 state
+        lvl1Round = 1;
+        ringsCount = 10;
+        currentCanvasSize = 440;
+        gameTimer = roundTimes[0];
+        orbsCollectedCount = 0;
+        glowTimeRemaining = 20;
+        hasEnteredMaze = false;
+        
+        // Update UI
+        document.getElementById('lvl1-round-display').innerText = lvl1Round;
+        let mins = Math.floor(gameTimer / 60);
+        let secs = gameTimer % 60;
+        document.getElementById('timer-display').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        document.getElementById('orb-counter').innerText = orbsCollectedCount;
+        document.getElementById('maze-ui').style.display = 'none';
+        
+        // Rebuild the maze
+        resizeMazeContainer();
+        currentMazeGrid = buildMazeGrid();
+        let seed = (chosenMazeIndex + 1) * 9999 + lvl1Round;
+        function tempRandom() {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+        }
+        chosenEntranceIndex = Math.floor(tempRandom() * currentMazeGrid[ringsCount - 1].length);
+        
+        drawPacManCircularMaze(false);
+        
+        // Reset player visual and location
+        const playerCircle = document.getElementById('player-circle');
+        playerCircle.style.backgroundColor = selectedColorHex;
+        playerCircle.style.boxShadow = `0 0 25px ${selectedColorHex}`;
+        playerCircle.style.left = `${playerX}px`;
+        playerCircle.style.top = `${playerY}px`;
+        playerCircle.style.opacity = '1';
+        
+        // Reset movement keys
+        for (let key in keys) { keys[key] = false; }
+        
+        playerActive = true;
+    }, 1000);
+}
+
 class Cell {
     constructor(ring, thetaIndex, totalThetas) {
         this.ring = ring; 
@@ -525,10 +595,7 @@ function startMainTimer() {
         document.getElementById('timer-display').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         
         if (gameTimer <= 0) {
-            clearInterval(timerInterval);
-            clearInterval(glowInterval);
-            if (deathTimer) clearTimeout(deathTimer);
-            location.reload();
+            triggerLevel1Fail();
         }
     }, 1000);
 }
@@ -548,8 +615,7 @@ function startGleamTimer() {
             clearInterval(glowInterval);
             playerCircle.style.opacity = '0';
             deathTimer = setTimeout(() => {
-                clearInterval(timerInterval);
-                location.reload();
+                triggerLevel1Fail();
             }, 1000);
         }
     }, 1000);
