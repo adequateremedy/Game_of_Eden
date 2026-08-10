@@ -84,6 +84,13 @@ In order to maintain the connection to your Energy's Source, for Level 1, you mu
         <button class="btn" onclick="restartLevel1()">Restart Labyrinth</button>
     </div>
 
+    <!-- Between Rounds Transition Popup Box -->
+    <div id="round-transition-box" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 700px; height: 560px; background: rgba(0, 0, 0, 0.95); border: 4px solid #b87333; box-shadow: 0 0 25px #b87333; z-index: 50; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; box-sizing: border-box; opacity: 0; pointer-events: none; transition: opacity 1s ease; overflow: hidden;">
+        <div id="round-transition-content" style="display: flex; flex-direction: column; align-items: center; text-align: center; width: 100%;">
+            <!-- Injected dynamically by JS -->
+        </div>
+    </div>
+
     <!-- Level 1 Results Popup Box -->
     <div id="transition-popup-box">
         <div id="transition-popup-content">
