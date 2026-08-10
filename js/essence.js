@@ -146,6 +146,7 @@ let timerInterval = null;
 let orbsCollectedCount = 0;
 let glowTimeRemaining = 20; 
 let glowInterval = null;
+let deathTimer = null;
 let activeOrbs = [];
 let hasEnteredMaze = false;
 
@@ -526,6 +527,7 @@ function startMainTimer() {
         if (gameTimer <= 0) {
             clearInterval(timerInterval);
             clearInterval(glowInterval);
+            if (deathTimer) clearTimeout(deathTimer);
             location.reload();
         }
     }, 1000);
@@ -544,11 +546,11 @@ function startGleamTimer() {
             playerCircle.style.opacity = opacityFactor;
         } else if (glowTimeRemaining <= 0) {
             clearInterval(glowInterval);
-            clearInterval(timerInterval);
             playerCircle.style.opacity = '0';
-            setTimeout(() => {
+            deathTimer = setTimeout(() => {
+                clearInterval(timerInterval);
                 location.reload();
-            }, 500);
+            }, 1000);
         }
     }, 1000);
 }
@@ -604,7 +606,7 @@ function checkOrbCollection() {
         let dy = playerY - orb.y;
         let distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < playerRadius + 6) {
+        if (distance < playerRadius + 12) {
             orb.element.remove();
             activeOrbs.splice(i, 1);
 
@@ -615,6 +617,12 @@ function checkOrbCollection() {
             let playerCircle = document.getElementById('player-circle');
             playerCircle.style.opacity = '1';
             playerCircle.style.boxShadow = `0 0 25px ${selectedColorHex}`;
+
+            if (deathTimer) {
+                clearTimeout(deathTimer);
+                deathTimer = null;
+                startGleamTimer();
+            }
 
             spawnSingleOrb();
         }
@@ -729,6 +737,10 @@ function gameLoop() {
                     playerActive = false;
                     clearInterval(timerInterval);
                     clearInterval(glowInterval);
+                    if (deathTimer) {
+                        clearTimeout(deathTimer);
+                        deathTimer = null;
+                    }
                     
                     activeOrbs.forEach(o => o.element.remove());
                     activeOrbs = [];
