@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Solus Bloodline RPG - Offensive Essence Discovery</title>
+<title>Solus Dynasty RPG - Offensive Essence Discovery</title>
 <link rel="stylesheet" href="css/essence.css">
 </head>
 <body>
@@ -55,14 +55,13 @@ However, an unguided spark is nothing but a hazard. Before this Energy can be we
 
         <div id="maze-container">
             <div id="maze-wrapper" style="position: relative; width: 440px; height: 440px;">
-                <canvas id="hiddenMazeCanvas" width="440" height="440" style="display: none;"></canvas>
                 <canvas id="mazeCanvas" width="440" height="440" style="background: transparent; position: absolute; top: 0; left: 0; display: block;"></canvas>
                 <div id="player-circle"></div>
                 <div id="orbs-layer"></div>
             </div>
-            <!-- UI Header: Round, Timer and Orb Counter -->
+            <!-- UI Header: Timer and Orb Counter -->
             <div id="maze-ui" style="display: none;">
-                Round: <span id="lvl1-round-display">1</span>/3 | Time: <span id="timer-display">1:00</span> | Orbs: <span id="orb-counter">0</span>
+                <span id="timer-display">5:00</span> | Orbs: <span id="orb-counter">0</span>
             </div>
         </div>
     </div>
@@ -72,8 +71,8 @@ However, an unguided spark is nothing but a hazard. Before this Energy can be we
         <div id="maze-instruction-content">
             <p>Source Connection
 
-Your emotions spike and the Energy it creates, begins to vibrate. Stabilized emotions give off an elemental resonance, proving that your Essence is maintaining its connection to the Source. 
-In order to maintain the connection to your Energy's Source, for Level 1, approach from 1 block outside the circular perimeter, pass cleanly through the open entrance door, step 2 blocks inside to seal the entrance, and navigate the rotating mind-labyrinth across three escalating rounds (1 min, 2 mins, and 3 mins) before time runs out OR your focus fades.</p>
+Your emotions spike and the Energy it creates, begins to vibrate. Stabilized emotions give off a brighter Aura, proving that your Essence is maintaining its connection to the Source. 
+In order to maintain the connection to your Energy's Source, for Level 1, you must collect as many glowing, white orbs as you can and reach the center of this labyrinth in your mind, before the timer runs out OR your Aura fades.</p>
             <button class="btn" onclick="closeMazeInstructions()">Alright</button>
         </div>
     </div>
